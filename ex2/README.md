@@ -88,7 +88,9 @@ Before proceeding with any code related to a network module, think about how you
 
  - Guarantees about elevators:
    - What should happen if one of the nodes loses its network connection?
+     - should be able to press cab-buttons but not external buttons
    - What should happen if one of the nodes loses power for a brief moment?
+     - restart ASAP
    - What should happen if some unforeseen event causes the elevator to never reach its destination, but communication remains intact?
    
  - Guarantees about orders:
