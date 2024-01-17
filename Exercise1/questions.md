@@ -20,6 +20,8 @@ Why would we use multiple threads? What kinds of problems do threads solve?
 
 Some languages support "fibers" (sometimes called "green threads") or "coroutines"? What are they, and why would we rather use them over threads?
 >The goal with using Fibers is to divide the thread into several tasks - independent tasks do their own work, as opposed to work being passed around as functions. This makes it "look" like blocking
+OS threads
+fibers: programmeringspråk - høyere opp, med egen scheduler
 
 Does creating concurrent programs make the programmer's life easier? Harder? Maybe both?
 > A bit moore work in the begiinning, but makes it a lot easier to change and modify the code

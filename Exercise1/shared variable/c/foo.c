@@ -10,23 +10,27 @@ pthread_mutex_t mtx;
 // Note the return type: void*
 void* incrementingThreadFunction(){
     // TODO: increment i 1_000_000 times
-    pthread_mutex_lock(&mtx);
+    
     for (int j = 0; j < 1000000; j++)
     {
+        pthread_mutex_lock(&mtx);
         i++;
+        pthread_mutex_unlock(&mtx);
     }
-    pthread_mutex_unlock(&mtx);
+    
     return NULL;
 }
 
 void* decrementingThreadFunction(){
-    pthread_mutex_lock(&mtx);
+    
 
     for (int j = 0; j < 1000001; j++)
     {
-        i--;
+        pthread_mutex_lock(&mtx);
+        i--;  
+        pthread_mutex_unlock(&mtx);
     }
-    pthread_mutex_unlock(&mtx);
+  
 
     return NULL;
 }
