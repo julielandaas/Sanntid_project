@@ -1,7 +1,10 @@
 package main
 
-import "Driver-go/elevio"
+//import "Driver-go/elevio"
+import "Driver-go/elevio/elevator_io"
+import "Driver-go/elevio/elevator"
 import "fmt"
+
 
 func main(){
 
@@ -21,6 +24,7 @@ func main(){
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
     go elevio.PollStopButton(drv_stop)
+    go elevio.fsmOnInitBetweenFloors()
     
     
     for {
@@ -29,14 +33,14 @@ func main(){
             fmt.Printf("%+v\n", a)
             elevio.SetButtonLamp(a.Button, a.Floor, true)
             
-        case a := <- drv_floors:
+        /*case a := <- drv_floors:
             fmt.Printf("%+v\n", a)
             if a == numFloors-1 {
                 d = elevio.MD_Down
             } else if a == 0 {
                 d = elevio.MD_Up
             }
-            elevio.SetMotorDirection(d)
+            elevio.SetMotorDirection(d)*/
             
             
         case a := <- drv_obstr:

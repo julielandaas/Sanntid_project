@@ -35,6 +35,8 @@ static void setAllLights(Elevator es){
     }
 }
 
+
+
 void fsm_onInitBetweenFloors(void){
     outputDevice.motorDirection(D_Down);
     elevator.dirn = D_Down;
