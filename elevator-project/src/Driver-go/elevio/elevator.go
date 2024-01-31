@@ -1,95 +1,115 @@
-package elevator
+package elevio
 
-import "time"
-import "sync"
-import "net"
-import "fmt"
-import "Driver-go/elevio"
+//import "fmt"
 
-type ElevatorBehaviour int
+const N_FLOORS = 4
+const N_BUTTONS = 3
 
+
+var elevator Elevator
+var Outputdevice ElevOutputDevice
+
+
+type MotorDirection int
 const (
-	EB_Idle   ElevatorBehaviour = 1
-	EB_DoorOpen                = -1
-	EB_Moving                = 0
+	MD_Up   MotorDirection = 1
+	MD_Down                = -1
+	MD_Stop                = 0
+)
+
+type ButtonType int
+const (
+	BT_HallUp   ButtonType = 0
+	BT_HallDown             = 1
+	BT_Cab                  = 2
+)
+
+type ButtonEvent struct {
+	Floor  int
+	Button ButtonType
+}
+
+type Dirn int
+const (
+	D_Down Dirn = -1
+	D_Stop           = 0
+	D_Up             = 1
 )
 
 
+type ElevatorBehaviour int
+const (
+	EB_Idle     ElevatorBehaviour = 1
+	EB_DoorOpen                   = -1
+	EB_Moving                     = 0
+)
+
+type ClearRequestVariant int
+const (
+	CV_All     ClearRequestVariant = 0
+	CV_InDirn                      = 1
+)
+
+type config struct {
+	clearRequestVariant ClearRequestVariant
+	doorOpenDuration_s float32 
+}
+
 type Elevator struct {
-    Behavior    ElevatorBehaviour      `json:"behaviour"`
-    Floor       int         `json:"floor"` 
-    Direction   string      `json:"direction"`
-    CabRequests []bool      `json:"cabRequests"`
-}
-
-type Direction int
-const { 
-    D_Down  Direction = -1,
-    D_Stop  = 0,
-    D_Up    = 1
-}
-
-var elevator Elevator
-
-func elevatorUninitialized() {
-	elevator = {EB_Idle, -1, D_Stop}// Assuming EB_Idle is defined in Go
+	Behavior    ElevatorBehaviour `json:"behaviour"`
+	Floor       int               `json:"floor"`
+	Dirn   Dirn            `json:"direction"`
+	CabRequests [N_FLOORS][N_BUTTONS]int          `json:"cabRequests"`
+	config config
+	
 }
 
 
-// Assuming Dirn, Behaviour, and other custom types are defined elsewhere.
-
-// fsmOnInitBetweenFloors sets the initial state of the elevator when it's between floors.
-func fsmOnInitBetweenFloors() {
-	elevio.SetMotorDirection(MD_Down)
-	//outputDevice.MotorDirection(D_Down) // Assuming outputDevice is a global variable or appropriately scoped in your context
-	elevator.Direction = D_Down              // Assuming elevator is a global variable or appropriately scoped
-	elevator.Behaviour = EB_Moving      // Assuming constants DDown and EBMoving are defined in your Go code
-}
-
-// Other necessary variables, types, and functions (like outputDevice, Elevator, Dirn, etc.) should be defined elsewhere in your codebase.
-
-// Assuming Button, DirnBehaviourPair, and other custom types are defined elsewhere.
-
-// fsmOnRequestButtonPress is a translation of the provided C function.
-func fsmOnRequestButtonPress(btnFloor int, btnType Button) {
-	fmt.Printf("\n\n%s(%d, %s)\n", "fsmOnRequestButtonPress", btnFloor, elevioButtonToString(btnType))
-	//elevatorPrint(elevator)
-
-	switch elevator.Behaviour {
-	case EBDoorOpen:
-		if requestsShouldClearImmediately(elevator, btnFloor, btnType) {
-			timerStart(elevator.Config.DoorOpenDurationS)
-		} else {
-			elevator.Requests[btnFloor][btnType] = true
+func elevator_uninitialized() Elevator {
+	elevator := Elevator{
+		Behavior: EB_Idle,
+		Floor: -1,
+		Dirn: D_Stop,
+		config: config{
+			clearRequestVariant: CV_InDirn,
+			doorOpenDuration_s: 3.0,
+			},
 		}
+	
+	return elevator
+	
+}
 
-	case EBMoving:
-		elevator.Requests[btnFloor][btnType] = true
+func Fsm_onInitBetweenFloors() {
+	Outputdevice.MotorDirection(MD_Down)
+	elevator.Dirn = D_Down
+	elevator.Behavior = EB_Moving
+}
 
-	case EBIdle:
-		elevator.Requests[btnFloor][btnType] = true
-		pair := requestsChooseDirection(elevator)
-		elevator.Dirn = pair.Dirn
-		elevator.Behaviour = pair.Behaviour
-		switch pair.Behaviour {
-		case EBDoorOpen:
-			outputDevice.DoorLight(true)
-			timerStart(elevator.Config.DoorOpenDurationS)
-			elevator = requestsClearAtCurrentFloor(elevator)
-
-		case EBMoving:
-			outputDevice.MotorDirection(elevator.Dirn)
-
-		case EBIdle:
-			// No action needed
-		}
+//fmt.Print("Ferdig")
+func elevio_dirn_toString(d Dirn) string{
+	switch d {
+	case D_Up:
+		return "D_Up"
+	case D_Down:
+		return "D_Down"
+	case D_Stop:
+		return "D_Stop"
+	default:
+		return "D_UNDEFINED"
 	}
-
-	setAllLights(elevator)
-
-	fmt.Println("\nNew state:")
-	elevatorPrint(elevator)
 }
 
-// Other functions (e.g., elevioButtonToString, elevatorPrint, requestsShouldClearImmediately, etc.) are assumed to be defined elsewhere.
+func elevio_button_toString(b ButtonType) string{
+	switch b {
+	case BT_HallUp:
+		return "BT_HallUp"
+	case BT_HallDown:
+		return "BT_HallDown"
+	case BT_Cab:
+		return "BT_Cab"
+	default:
+		return "BT_UNDEFINED"
+	}
+}
 

@@ -1,4 +1,4 @@
-package elevator_io
+package elevio
 
 import "time"
 import "sync"
@@ -13,28 +13,6 @@ var _initialized    bool = false
 var _numFloors      int = 4
 var _mtx            sync.Mutex
 var _conn           net.Conn
-
-type MotorDirection int
-
-const (
-	MD_Up   MotorDirection = 1
-	MD_Down                = -1
-	MD_Stop                = 0
-)
-
-type ButtonType int
-
-const (
-	BT_HallUp   ButtonType = 0
-	BT_HallDown            = 1
-	BT_Cab                 = 2
-)
-
-type ButtonEvent struct {
-	Floor  int
-	Button ButtonType
-}
-
 
 
 func Init(addr string, numFloors int) {
@@ -53,7 +31,7 @@ func Init(addr string, numFloors int) {
 }
 
 
-
+/*
 func SetMotorDirection(dir MotorDirection) {
 	write([4]byte{1, byte(dir), 0, 0})
 }
@@ -72,6 +50,42 @@ func SetDoorOpenLamp(value bool) {
 
 func SetStopLamp(value bool) {
 	write([4]byte{5, toByte(value), 0, 0})
+}
+*/
+
+type SetFloorIndicator func(floor int)
+type SetButtonLamp func(button ButtonType, floor int, value bool)
+type SetDoorOpenLamp func(value bool)
+type SetStopLamp func(value bool)
+type SetMotorDirection func(dir MotorDirection)
+
+
+type ElevOutputDevice struct {
+	FloorIndicator SetFloorIndicator
+	RequestButtonLight SetButtonLamp
+	DoorLight SetDoorOpenLamp
+	StopButtonLight SetStopLamp
+	MotorDirection SetMotorDirection	
+}
+
+func Elevio_getOutputDevice() ElevOutputDevice{
+	return ElevOutputDevice{
+		FloorIndicator: func(floor int){
+			write([4]byte{3, byte(floor), 0, 0})
+		},
+		RequestButtonLight: func(button ButtonType, floor int, value bool){
+			write([4]byte{2, byte(button), byte(floor), toByte(value)})
+		},
+		DoorLight: func(value bool){
+			write([4]byte{4, toByte(value), 0, 0})
+		},
+		StopButtonLight: func(value bool){
+			write([4]byte{5, toByte(value), 0, 0})
+		},
+		MotorDirection: func(dir MotorDirection){
+			write([4]byte{1, byte(dir), 0, 0})
+		},
+	}
 }
 
 
@@ -197,3 +211,5 @@ func toBool(a byte) bool {
 	}
 	return b
 }
+
+
