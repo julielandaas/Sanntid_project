@@ -12,7 +12,7 @@
 static Elevator             elevator;
 static ElevOutputDevice     outputDevice;
 
-
+// DROPPER DENNE
 static void __attribute__((constructor)) fsm_init(){
     elevator = elevator_uninitialized();
     

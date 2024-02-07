@@ -11,7 +11,7 @@ import(
 
 func dial_UDP() *net.UDPConn {
 	addr := net.UDPAddr{
-		Port: 20016,
+		Port: 20014,
 		IP:   net.ParseIP("10.100.23.255"),
 	}
 
@@ -52,8 +52,8 @@ func udp_send(count int, conn *net.UDPConn){
 func udp_recieve(errch chan int, recieved chan int) {
 	// Define the server address and port
 	addr := net.UDPAddr{
-		Port: 20016,
-		IP:   net.ParseIP("10.100.23.26"),
+		Port: 20014,
+		IP:   net.ParseIP("10.100.23.24"),
 	}
 
 	// Create a UDP socket

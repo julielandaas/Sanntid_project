@@ -1,13 +1,14 @@
 package elevio
 
-//import "fmt"
+import "time"
+
+
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
 
 
-var elevator Elevator
-var Outputdevice ElevOutputDevice
+//var Elevatorstate Elevator
 
 
 type MotorDirection int
@@ -50,41 +51,38 @@ const (
 	CV_InDirn                      = 1
 )
 
-type config struct {
-	clearRequestVariant ClearRequestVariant
-	doorOpenDuration_s float32 
+type Config struct {
+	ClearRequestVariant ClearRequestVariant
+	DoorOpenDuration_s  time.Duration
 }
 
 type Elevator struct {
-	Behavior    ElevatorBehaviour `json:"behaviour"`
-	Floor       int               `json:"floor"`
-	Dirn   Dirn            `json:"direction"`
-	CabRequests [N_FLOORS][N_BUTTONS]int          `json:"cabRequests"`
-	config config
+	Behaviour    ElevatorBehaviour          `json:"behaviour"`
+	Floor        int                        `json:"floor"`
+	Dirn         Dirn                       `json:"direction"`
+	CabRequests  [N_FLOORS][N_BUTTONS]bool  `json:"cabRequests"`
+	Config       Config
 	
 }
 
 
-func elevator_uninitialized() Elevator {
-	elevator := Elevator{
-		Behavior: EB_Idle,
+func Elevator_uninitialized() Elevator {
+	Elevatorstate := Elevator{
+		Behaviour: EB_Idle,
 		Floor: -1,
 		Dirn: D_Stop,
-		config: config{
-			clearRequestVariant: CV_InDirn,
-			doorOpenDuration_s: 3.0,
+		Config: Config{
+			ClearRequestVariant: CV_InDirn,
+			DoorOpenDuration_s: 3.0,
 			},
 		}
 	
-	return elevator
+	
+	return Elevatorstate
 	
 }
 
-func Fsm_onInitBetweenFloors() {
-	Outputdevice.MotorDirection(MD_Down)
-	elevator.Dirn = D_Down
-	elevator.Behavior = EB_Moving
-}
+
 
 //fmt.Print("Ferdig")
 func elevio_dirn_toString(d Dirn) string{

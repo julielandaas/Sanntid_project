@@ -31,7 +31,7 @@ func Init(addr string, numFloors int) {
 }
 
 
-/*
+
 func SetMotorDirection(dir MotorDirection) {
 	write([4]byte{1, byte(dir), 0, 0})
 }
@@ -51,8 +51,8 @@ func SetDoorOpenLamp(value bool) {
 func SetStopLamp(value bool) {
 	write([4]byte{5, toByte(value), 0, 0})
 }
-*/
 
+/*
 type SetFloorIndicator func(floor int)
 type SetButtonLamp func(button ButtonType, floor int, value bool)
 type SetDoorOpenLamp func(value bool)
@@ -87,7 +87,7 @@ func Elevio_getOutputDevice() ElevOutputDevice{
 		},
 	}
 }
-
+*/
 
 
 func PollButtons(receiver chan<- ButtonEvent) {
