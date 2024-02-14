@@ -2,7 +2,6 @@ package requests
 
 import (
 	"Sanntid/Driver-go/elevio"
-	
 )
 
 type DirnBehaviourPair struct {
@@ -33,13 +32,11 @@ func Requests_below(e elevio.Elevator) bool {
 }
 
 func Requests_here(e elevio.Elevator) bool {
-
     for btn := 0; btn < elevio.N_BUTTONS; btn++ {
         if e.CabRequests[e.Floor][btn] {
             return true
         }
     }
-    
     return false
 }
 
@@ -104,7 +101,7 @@ func Requests_shouldClearImmediately(e elevio.Elevator, btn_floor int,  btn_type
     case elevio.CV_All:
         return e.Floor == btn_floor
     case elevio.CV_InDirn:
-        return (e.Floor == btn_floor && e.Floor == btn_floor && (
+        return (e.Floor == btn_floor && (
             (e.Dirn == elevio.D_Up   && btn_type == elevio.BT_HallUp)    ||
             (e.Dirn == elevio.D_Down && btn_type == elevio.BT_HallDown)  ||
             e.Dirn == elevio.D_Stop ||

@@ -3,12 +3,8 @@ package elevio
 import "time"
 
 
-
 const N_FLOORS = 4
 const N_BUTTONS = 3
-
-
-//var Elevatorstate Elevator
 
 
 type MotorDirection int
@@ -28,6 +24,7 @@ const (
 type ButtonEvent struct {
 	Floor  int
 	Button ButtonType
+	Toggle bool
 }
 
 type Dirn int
@@ -76,10 +73,7 @@ func Elevator_uninitialized() Elevator {
 			DoorOpenDuration_s: 3.0,
 			},
 		}
-	
-	
 	return Elevatorstate
-	
 }
 
 

@@ -52,42 +52,6 @@ func SetStopLamp(value bool) {
 	write([4]byte{5, toByte(value), 0, 0})
 }
 
-/*
-type SetFloorIndicator func(floor int)
-type SetButtonLamp func(button ButtonType, floor int, value bool)
-type SetDoorOpenLamp func(value bool)
-type SetStopLamp func(value bool)
-type SetMotorDirection func(dir MotorDirection)
-
-
-type ElevOutputDevice struct {
-	FloorIndicator SetFloorIndicator
-	RequestButtonLight SetButtonLamp
-	DoorLight SetDoorOpenLamp
-	StopButtonLight SetStopLamp
-	MotorDirection SetMotorDirection	
-}
-
-func Elevio_getOutputDevice() ElevOutputDevice{
-	return ElevOutputDevice{
-		FloorIndicator: func(floor int){
-			write([4]byte{3, byte(floor), 0, 0})
-		},
-		RequestButtonLight: func(button ButtonType, floor int, value bool){
-			write([4]byte{2, byte(button), byte(floor), toByte(value)})
-		},
-		DoorLight: func(value bool){
-			write([4]byte{4, toByte(value), 0, 0})
-		},
-		StopButtonLight: func(value bool){
-			write([4]byte{5, toByte(value), 0, 0})
-		},
-		MotorDirection: func(dir MotorDirection){
-			write([4]byte{1, byte(dir), 0, 0})
-		},
-	}
-}
-*/
 
 
 func PollButtons(receiver chan<- ButtonEvent) {
@@ -98,7 +62,7 @@ func PollButtons(receiver chan<- ButtonEvent) {
 			for b := ButtonType(0); b < 3; b++ {
 				v := GetButton(b, f)
 				if v != prev[f][b] && v != false {
-					receiver <- ButtonEvent{f, ButtonType(b)}
+					receiver <- ButtonEvent{f, ButtonType(b), true}
 				}
 				prev[f][b] = v
 			}
