@@ -8,8 +8,9 @@ import (
 
 var elevator elevio.Elevator
 
-func Fsm(input_buttons_fsm chan elevio.ButtonEvent, input_floors_fsm chan int, input_obstr_fsm chan bool, timer_open_door chan timer.Timer_enum, timer_open_door_timeout chan bool, 
-	fsm_motorDir_output chan elevio.MotorDirection, fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_floorIndicator_output chan int, fsm_doorLamp_output chan bool){
+func Fsm(input_buttons_fsm chan elevio.ButtonEvent, input_floors_fsm chan int, input_obstr_fsm chan bool, timer_open_door chan timer.Timer_enum, 
+	timer_open_door_timeout chan bool, fsm_motorDir_output chan elevio.MotorDirection, fsm_buttonLamp_output chan elevio.ButtonEvent, 
+	fsm_floorIndicator_output chan int, fsm_doorLamp_output chan bool, fsm_state_requests chan elevio.Elevator, fsm_deleteCabRequest_requests chan elevio.Elevator){
 	
 	// Initialize
 	clearAllLights(fsm_buttonLamp_output, fsm_doorLamp_output)
@@ -24,7 +25,7 @@ func Fsm(input_buttons_fsm chan elevio.ButtonEvent, input_floors_fsm chan int, i
 		select {
 		case buttonEvent := <- input_buttons_fsm:
 			//elevio.SetButtonLamp(a.Button, a.Floor, true)
-			//fsm.Elevator.CabRequests[a.Button][a.Floor] = true
+			//fsm.Elevator.Requests[a.Button][a.Floor] = true
 			fsm_onRequestButtonPress(buttonEvent.Floor, buttonEvent.Button, timer_open_door, timer_open_door_timeout, 
 				fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
 
@@ -36,7 +37,7 @@ func Fsm(input_buttons_fsm chan elevio.ButtonEvent, input_floors_fsm chan int, i
 
 			fsm_floorIndicator_output <- floor
 			fsm_onFloorArrival(floor, timer_open_door, timer_open_door_timeout, 
-				fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
+				fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output, fsm_deleteCabRequest_requests)
 
 			
 

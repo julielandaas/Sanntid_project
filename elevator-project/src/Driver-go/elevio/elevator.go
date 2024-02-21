@@ -57,7 +57,7 @@ type Elevator struct {
 	Behaviour    ElevatorBehaviour          `json:"behaviour"`
 	Floor        int                        `json:"floor"`
 	Dirn         Dirn                       `json:"direction"`
-	CabRequests  [N_FLOORS][N_BUTTONS]bool  `json:"cabRequests"`
+	Requests     [N_FLOORS][N_BUTTONS]bool  `json:"Requests"`
 	Config       Config
 	
 }
@@ -79,7 +79,7 @@ func Elevator_uninitialized() Elevator {
 
 
 //fmt.Print("Ferdig")
-func elevio_dirn_toString(d Dirn) string{
+func Elevio_dirn_toString(d Dirn) string{
 	switch d {
 	case D_Up:
 		return "D_Up"
@@ -91,6 +91,20 @@ func elevio_dirn_toString(d Dirn) string{
 		return "D_UNDEFINED"
 	}
 }
+
+func Elevio_behaviour_toString(b ElevatorBehaviour) string{
+	switch b {
+	case EB_Idle:
+		return "EB_Idle"
+	case EB_Moving:
+		return "EB_Moving"
+	case EB_DoorOpen:
+		return "EB_DoorOpen"
+	default:
+		return "EB_UNDEFINED"
+	}
+}
+
 
 func elevio_button_toString(b ButtonType) string{
 	switch b {

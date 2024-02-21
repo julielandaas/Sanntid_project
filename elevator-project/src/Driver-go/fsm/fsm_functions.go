@@ -16,9 +16,9 @@ import (
 func setAllLights(fsm_buttonLamp_output chan elevio.ButtonEvent) {
 	for floor := 0; floor < elevio.N_FLOORS; floor++ {
 		for btn := 0; btn < elevio.N_BUTTONS; btn++ {
-            fsm_buttonLamp_output <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(btn), Toggle: elevator.CabRequests[floor][btn]}
+            fsm_buttonLamp_output <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(btn), Toggle: elevator.Requests[floor][btn]}
 
-			//elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.CabRequests[floor][btn])
+			//elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
 		}
 	}
 }
@@ -73,17 +73,18 @@ func fsm_onRequestButtonPress(btn_floor int, btn_type elevio.ButtonType, timer_o
 			fmt.Printf("TIMER STARTED\n")
 
         } else {
-            elevator.CabRequests[btn_floor][btn_type] = true
+            elevator.Requests[btn_floor][btn_type] = true
         }
 
     case elevio.EB_Moving:
-        elevator.CabRequests[btn_floor][btn_type] = true
+        elevator.Requests[btn_floor][btn_type] = true
 
     case elevio.EB_Idle:
-        elevator.CabRequests[btn_floor][btn_type] = true
+        elevator.Requests[btn_floor][btn_type] = true
         pair := requests.Requests_chooseDirection(elevator)
         elevator.Dirn = pair.Dirn
         elevator.Behaviour = pair.Behaviour
+
         
 		switch pair.Behaviour {
         case elevio.EB_DoorOpen:
@@ -109,7 +110,7 @@ func fsm_onRequestButtonPress(btn_floor int, btn_type elevio.ButtonType, timer_o
 
 
 func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, timer_open_door_timeout chan bool, fsm_motorDir_output chan elevio.MotorDirection, 
-    fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_floorIndicator_output chan int, fsm_doorLamp_output chan bool) {
+    fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_floorIndicator_output chan int, fsm_doorLamp_output chan bool, fsm_deleteCabRequest_requests chan elevio.Elevator) {
     elevator.Floor = newFloor
 	fmt.Printf("%+v\n", newFloor)
 
@@ -122,6 +123,7 @@ func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, time
             fsm_doorLamp_output <- true
 			
             elevator = requests.Requests_clearAtCurrentFloor(elevator)
+            fsm_deleteCabRequest_requests <- elevator
 			
             //timer_start(elevator.Config.DoorOpenDuration_s)
 			fmt.Printf("TIMER STARTED\n")
