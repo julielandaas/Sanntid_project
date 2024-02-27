@@ -8,7 +8,7 @@ import (
 
 
 
-func Inputdevice(input_buttons_requests chan elevio.ButtonEvent, input_floors_fsm chan int, input_obstr_fsm chan bool){
+func Inputdevice(input_buttons_network chan elevio.ButtonEvent, input_floors_fsm chan int, input_obstr_fsm chan bool){
 	
     drv_buttons_input := make(chan elevio.ButtonEvent)
 	drv_floors_input := make(chan int)
@@ -26,7 +26,7 @@ func Inputdevice(input_buttons_requests chan elevio.ButtonEvent, input_floors_fs
 		select {
 		case button_pressed := <-drv_buttons_input:
 			fmt.Printf("Button is pressed %+v\n", button_pressed)
-			input_buttons_requests <- button_pressed
+			input_buttons_network <- button_pressed
 		
 		case floors := <- drv_floors_input:
 			fmt.Printf("At floor %+v\n", floors)

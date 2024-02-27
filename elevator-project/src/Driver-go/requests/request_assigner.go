@@ -25,8 +25,8 @@ type HRAInput struct {
 
 
 
-func Request_assigner(input_buttons_requests chan elevio.ButtonEvent, fsm_state_requests chan elevio.Elevator, fsm_deleteCabRequest_requests chan elevio.Elevator){
-	HRA_output := make(chan )
+func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteCabRequest_requests chan elevio.Elevator, requests_state_network chan elevio.Elevator){
+	//HRA_output := make(chan )
 	myState := HRAElevState{
 		Behaviour:       "idle",
 		Floor:          0,
@@ -49,6 +49,9 @@ func Request_assigner(input_buttons_requests chan elevio.ButtonEvent, fsm_state_
     
 	for {
 		select {
+
+			//vi flytter dette over i Network og så fikser vi det her senere
+			/*
 		case button_request := <- input_buttons_requests:
 			if button_request.Button == elevio.BT_Cab{
 				myState.CabRequests[button_request.Floor] = true
@@ -57,9 +60,11 @@ func Request_assigner(input_buttons_requests chan elevio.ButtonEvent, fsm_state_
 				input.HallRequests[button_request.Floor][button_request.Button] = true
 			}
 			reassign_requests(input)
-
+*/
 // MULIG FUCK-UP, SÅ SJEKK HER VISS DET BLIR FEIL
 		case state := <- fsm_state_requests:
+			requests_state_network <- state
+
 			myState.Behaviour = elevio.Elevio_behaviour_toString(state.Behaviour)
 			myState.Floor = state.Floor
 			myState.Direction = elevio.Elevio_dirn_toString(state.Dirn)

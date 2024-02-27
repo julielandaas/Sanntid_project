@@ -42,20 +42,22 @@ func main() {
 	timer_open_door_timeout := make(chan bool)
 
 	//input_buttons_requests
-	input_buttons_requests := make(chan elevio.ButtonEvent)
+	input_buttons_network := make(chan elevio.ButtonEvent)
 
 	fsm_state_requests := make(chan elevio.Elevator)
 
 	fsm_deleteCabRequest_requests := make(chan elevio.Elevator)
 
-	go main_network.Main_network()
-	go inputdevice.Inputdevice(input_buttons_requests, input_floors_fsm, input_obstr_fsm)
+	requests_state_network := make(chan elevio.Elevator)
+
+	go main_network.Main_network(requests_state_network, input_buttons_network)
+	go inputdevice.Inputdevice(input_buttons_network, input_floors_fsm, input_obstr_fsm)
 	go outputdevice.Outputdevice(fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
 	
 	go timer.Timer_handler(timer_open_door, timer_open_door_timeout, doorOpenDuration_s)
 	go fsm.Fsm(input_buttons_fsm, input_floors_fsm, input_obstr_fsm, timer_open_door, timer_open_door_timeout, 
 		fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output, fsm_state_requests, fsm_deleteCabRequest_requests)
-	go requests.Request_assigner(input_buttons_requests, fsm_state_requests, fsm_deleteCabRequest_requests)
+	go requests.Request_assigner(fsm_state_requests, fsm_deleteCabRequest_requests, requests_state_network)
 	
 	for{
 

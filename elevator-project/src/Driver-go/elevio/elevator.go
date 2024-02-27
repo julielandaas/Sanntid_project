@@ -24,7 +24,7 @@ const (
 type ButtonEvent struct {
 	Floor  int
 	Button ButtonType
-	Toggle bool
+	Toggle bool //endre denne til et bedre navn
 }
 
 type Dirn int
