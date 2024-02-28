@@ -113,7 +113,7 @@ func Requests_shouldClearImmediately(e elevio.Elevator, btn_floor int,  btn_type
 
 
 
-func Requests_clearAtCurrentFloor(e elevio.Elevator) elevio.Elevator {
+func Requests_clearAtCurrentFloor(e elevio.Elevator, fsm_deleteHallRequest_requests chan elevio.ButtonEvent) elevio.Elevator {
     switch e.Config.ClearRequestVariant {
     case elevio.CV_All:
         for btn := 0; btn < elevio.N_BUTTONS; btn++ {
@@ -127,21 +127,30 @@ func Requests_clearAtCurrentFloor(e elevio.Elevator) elevio.Elevator {
         case elevio.D_Up:
             if !Requests_above(e) && !e.Requests[e.Floor][elevio.BT_HallUp] {
                 e.Requests[e.Floor][elevio.BT_HallDown] = false
+                fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallDown, Toggle: false}
             }
             e.Requests[e.Floor][elevio.BT_HallUp] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallUp, Toggle: false}
 
         case elevio.D_Down:
             if !Requests_below(e) && !e.Requests[e.Floor][elevio.BT_HallDown] {
                 e.Requests[e.Floor][elevio.BT_HallUp] = false
+                fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallUp, Toggle: false}
             }
             e.Requests[e.Floor][elevio.BT_HallDown] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallDown, Toggle: false}
 
         case elevio.D_Stop:
             e.Requests[e.Floor][elevio.BT_HallUp] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallUp, Toggle: false}
             e.Requests[e.Floor][elevio.BT_HallDown] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallDown, Toggle: false}
+            
         default:
             e.Requests[e.Floor][elevio.BT_HallUp] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallUp, Toggle: false}
             e.Requests[e.Floor][elevio.BT_HallDown] = false
+            fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.BT_HallDown, Toggle: false}
         }
 
     default:
