@@ -37,9 +37,9 @@ const (
 
 type ElevatorBehaviour int
 const (
-	EB_Idle     ElevatorBehaviour = 1
-	EB_DoorOpen                   = -1
-	EB_Moving                     = 0
+	EB_Idle     ElevatorBehaviour = 1	  
+	EB_DoorOpen                   = -1	  
+	EB_Moving                     = 0   
 )
 
 type ClearRequestVariant int
@@ -64,9 +64,11 @@ type Elevator struct {
 
 
 func Elevator_uninitialized() Elevator {
+	currentFloor := GetFloor()
+	
 	Elevatorstate := Elevator{
 		Behaviour: EB_Idle,
-		Floor: -1,
+		Floor: currentFloor,
 		Dirn: D_Stop,
 		Config: Config{
 			ClearRequestVariant: CV_InDirn,
@@ -82,11 +84,11 @@ func Elevator_uninitialized() Elevator {
 func Elevio_dirn_toString(d Dirn) string{
 	switch d {
 	case D_Up:
-		return "D_Up"
+		return "up"
 	case D_Down:
-		return "D_Down"
+		return "down"
 	case D_Stop:
-		return "D_Stop"
+		return "stop"
 	default:
 		return "D_UNDEFINED"
 	}
@@ -95,11 +97,11 @@ func Elevio_dirn_toString(d Dirn) string{
 func Elevio_behaviour_toString(b ElevatorBehaviour) string{
 	switch b {
 	case EB_Idle:
-		return "EB_Idle"
+		return "idle"
 	case EB_Moving:
-		return "EB_Moving"
+		return "moving"
 	case EB_DoorOpen:
-		return "EB_DoorOpen"
+		return "doorOpen"
 	default:
 		return "EB_UNDEFINED"
 	}
@@ -109,11 +111,11 @@ func Elevio_behaviour_toString(b ElevatorBehaviour) string{
 func elevio_button_toString(b ButtonType) string{
 	switch b {
 	case BT_HallUp:
-		return "BT_HallUp"
+		return "hallUp"
 	case BT_HallDown:
-		return "BT_HallDown"
+		return "hallDown"
 	case BT_Cab:
-		return "BT_Cab"
+		return "cab"
 	default:
 		return "BT_UNDEFINED"
 	}

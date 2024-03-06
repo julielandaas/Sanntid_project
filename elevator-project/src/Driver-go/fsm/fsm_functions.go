@@ -12,7 +12,7 @@ import (
 //timerpointer = time.NewTimer(elevator.Config.DoorOpenDuration_s*(time.Second))
 
 
-
+/*
 func setAllLights(fsm_buttonLamp_output chan elevio.ButtonEvent) {
 	for floor := 0; floor < elevio.N_FLOORS; floor++ {
 		for btn := 0; btn < elevio.N_BUTTONS; btn++ {
@@ -22,7 +22,7 @@ func setAllLights(fsm_buttonLamp_output chan elevio.ButtonEvent) {
 		}
 	}
 }
-
+*/
 
 func clearAllLights(fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_doorLamp_output chan bool) {
 	for floor := 0; floor < elevio.N_FLOORS; floor++ {
@@ -40,18 +40,19 @@ func clearAllLights(fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_doorLamp_
 
 
 func fsm_onInitBetweenFloors(fsm_motorDir_output chan elevio.MotorDirection) {
-	a := elevio.GetFloor()
-	if a == -1 {
+	//a := elevio.GetFloor()
+	if elevator.Floor == -1 {
         fsm_motorDir_output <- elevio.MD_Down
 		elevator.Dirn = elevio.D_Down
 		elevator.Behaviour = elevio.EB_Moving
 	Loop:
 		for {
-			a = elevio.GetFloor()
+			a := elevio.GetFloor()
 			if a != -1 {
                 fsm_motorDir_output <- elevio.MD_Stop
 				elevator.Dirn = elevio.D_Stop
 				elevator.Behaviour = elevio.EB_Idle
+                elevator.Floor = a
 
 				break Loop
 			}
@@ -60,7 +61,7 @@ func fsm_onInitBetweenFloors(fsm_motorDir_output chan elevio.MotorDirection) {
 }
 
 
-
+/*
 func fsm_onRequestButtonPress(btn_floor int, btn_type elevio.ButtonType, timer_open_door chan timer.Timer_enum, timer_open_door_timeout chan bool, 
 	fsm_motorDir_output chan elevio.MotorDirection, fsm_buttonLamp_output chan elevio.ButtonEvent, fsm_floorIndicator_output chan int, fsm_doorLamp_output chan bool, fsm_deleteHallRequest_requests chan elevio.ButtonEvent) {
     switch elevator.Behaviour {
@@ -106,7 +107,55 @@ func fsm_onRequestButtonPress(btn_floor int, btn_type elevio.ButtonType, timer_o
 
     setAllLights(fsm_buttonLamp_output)
 }
+*/
 
+func fsm_newRequests(timer_open_door chan timer.Timer_enum, fsm_motorDir_output chan elevio.MotorDirection, fsm_buttonLamp_output chan elevio.ButtonEvent, 
+    fsm_doorLamp_output chan bool, fsm_deleteHallRequest_requests chan elevio.ButtonEvent) {
+    switch elevator.Behaviour {
+
+    case elevio.EB_DoorOpen:
+        if requests.Requests_shouldClearImmediately(elevator) {
+            //timer_pointer := time.NewTimer(elevator.Config.DoorOpenDuration_s*(time.Second))
+			//timer_start(elevator.Config.DoorOpenDuration_s)
+
+			timer_open_door <- timer.Timer_stop
+			timer_open_door <- timer.Timer_reset
+			fmt.Printf("TIMER STARTED\n")
+
+            elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
+        }
+
+    case elevio.EB_Moving:
+        // No action required
+
+    case elevio.EB_Idle:
+        pair := requests.Requests_chooseDirection(elevator)
+        elevator.Dirn = pair.Dirn
+        elevator.Behaviour = pair.Behaviour
+
+		switch pair.Behaviour {
+        case elevio.EB_DoorOpen:
+            fsm_doorLamp_output <- true
+			//timer_pointer_new := time.NewTimer(elevator.Config.DoorOpenDuration_s*(time.Second))
+            //timer_start(elevator.Config.DoorOpenDuration_s)
+			timer_open_door <- timer.Timer_stop
+			timer_open_door <- timer.Timer_reset
+			fmt.Printf("TIMER STARTED\n")
+
+            elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
+
+        case elevio.EB_Moving:
+            fmt.Printf("trying to move\n")
+            fsm_motorDir_output <- elevio.MotorDirection(elevator.Dirn)
+
+        case elevio.EB_Idle:
+            // No additional action required
+            fmt.Printf("still idle\n")
+        }
+    }
+
+    //setAllLights(fsm_buttonLamp_output)
+}
 
 
 func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, timer_open_door_timeout chan bool, fsm_motorDir_output chan elevio.MotorDirection, 
@@ -122,7 +171,7 @@ func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, time
             fsm_motorDir_output <- elevio.MD_Stop
             fsm_doorLamp_output <- true
 			
-            elevator = requests.Requests_clearAtCurrentFloor(elevator, fsm_deleteHallRequest_requests)
+            elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
             //fsm_deleteCabRequest_requests <- elevator
 			
             //timer_start(elevator.Config.DoorOpenDuration_s)
@@ -130,7 +179,7 @@ func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, time
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
 			
-            setAllLights(fsm_buttonLamp_output)
+            //setAllLights(fsm_buttonLamp_output)
 
             elevator.Behaviour = elevio.EB_DoorOpen
         }
@@ -157,8 +206,8 @@ func fsm_onDoorTimeout(timer_open_door chan timer.Timer_enum, timer_open_door_ti
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
 			fmt.Printf("TIMER STARTED\n")
-            elevator = requests.Requests_clearAtCurrentFloor(elevator, fsm_deleteHallRequest_requests)
-            setAllLights(fsm_buttonLamp_output)
+            elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
+            //setAllLights(fsm_buttonLamp_output)
 
         case elevio.EB_Moving, elevio.EB_Idle:
             fsm_doorLamp_output <- false

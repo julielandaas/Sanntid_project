@@ -96,16 +96,15 @@ func Requests_shouldStop(e elevio.Elevator) bool {
 }
 
 
-func Requests_shouldClearImmediately(e elevio.Elevator, btn_floor int,  btn_type elevio.ButtonType) bool {
+func Requests_shouldClearImmediately(e elevio.Elevator) bool {
     switch e.Config.ClearRequestVariant{
     case elevio.CV_All:
-        return e.Floor == btn_floor
+        return (e.Requests[e.Floor][elevio.BT_HallUp] || e.Requests[e.Floor][elevio.BT_HallDown] || e.Requests[e.Floor][elevio.BT_Cab])
     case elevio.CV_InDirn:
-        return (e.Floor == btn_floor && (
-            (e.Dirn == elevio.D_Up   && btn_type == elevio.BT_HallUp)    ||
-            (e.Dirn == elevio.D_Down && btn_type == elevio.BT_HallDown)  ||
-            e.Dirn == elevio.D_Stop ||
-            btn_type == elevio.BT_Cab))
+        return ((e.Dirn == elevio.D_Up   && e.Requests[e.Floor][elevio.BT_HallUp])    ||
+                (e.Dirn == elevio.D_Down && e.Requests[e.Floor][elevio.BT_HallDown])  ||
+                e.Dirn == elevio.D_Stop ||
+                e.Requests[e.Floor][elevio.BT_Cab])
     default:
         return false
     }
@@ -113,11 +112,15 @@ func Requests_shouldClearImmediately(e elevio.Elevator, btn_floor int,  btn_type
 
 
 
-func Requests_clearAtCurrentFloor(e elevio.Elevator, fsm_deleteHallRequest_requests chan elevio.ButtonEvent) elevio.Elevator {
+func Requests_clearAtCurrentFloor_elevatoruse(e elevio.Elevator, fsm_deleteHallRequest_requests chan elevio.ButtonEvent) elevio.Elevator {
     switch e.Config.ClearRequestVariant {
     case elevio.CV_All:
         for btn := 0; btn < elevio.N_BUTTONS; btn++ {
             e.Requests[e.Floor][btn] = false
+            if elevio.ButtonType(btn) != elevio.BT_Cab {
+                fsm_deleteHallRequest_requests <- elevio.ButtonEvent{Floor: e.Floor, Button: elevio.ButtonType(btn), Toggle: false}
+            }
+            
         }
 
     case elevio.CV_InDirn:
@@ -159,3 +162,37 @@ func Requests_clearAtCurrentFloor(e elevio.Elevator, fsm_deleteHallRequest_reque
     return e
 }
 
+func Requests_clearAtCurrentFloor(e elevio.Elevator) elevio.Elevator {
+    switch e.Config.ClearRequestVariant {
+    case elevio.CV_All:
+        for btn := 0; btn < elevio.N_BUTTONS; btn++ {
+            e.Requests[e.Floor][btn] = false
+        }
+
+    case elevio.CV_InDirn:
+        e.Requests[e.Floor][elevio.BT_Cab] = false
+        
+        switch e.Dirn {
+        case elevio.D_Up:
+            if !Requests_above(e) && !e.Requests[e.Floor][elevio.BT_HallUp] {
+                e.Requests[e.Floor][elevio.BT_HallDown] = false
+            }
+            e.Requests[e.Floor][elevio.BT_HallUp] = false
+        case elevio.D_Down:
+            if !Requests_below(e) && !e.Requests[e.Floor][elevio.BT_HallDown] {
+                e.Requests[e.Floor][elevio.BT_HallUp] = false
+            }
+            e.Requests[e.Floor][elevio.BT_HallDown] = false
+        case elevio.D_Stop:
+            e.Requests[e.Floor][elevio.BT_HallUp] = false
+            e.Requests[e.Floor][elevio.BT_HallDown] = false
+        default:
+            e.Requests[e.Floor][elevio.BT_HallUp] = false
+            e.Requests[e.Floor][elevio.BT_HallDown] = false
+        }
+
+    default:
+    }
+
+    return e
+}
