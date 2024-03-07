@@ -28,15 +28,14 @@ func main() {
 	requests_timeout_duration_s := 1
 	delete_timeout_duration_s := 3
 
-	//inout to fsm channels
-	input_buttons_fsm := make(chan elevio.ButtonEvent, 10) // FJERN DINNA ASAP
-	input_floors_fsm := make(chan int, 10)
-	input_obstr_fsm := make(chan bool, 10)
+	//input to fsm channels
+	input_buttons_fsm := make(chan elevio.ButtonEvent, 30)
+	input_floors_fsm := make(chan int)
+	input_obstr_fsm := make(chan bool)
 	//input_stop_fsm := make(chan bool)
 
 	//fsm to output
 	fsm_motorDir_output := make(chan elevio.MotorDirection, 10)
-	requests_buttonLamp_output := make(chan elevio.ButtonEvent, 20)
 	fsm_floorIndicator_output := make(chan int, 10)
 	fsm_doorLamp_output := make(chan bool, 10)
 	//fsm_stopLamp_output := make(chan bool)
@@ -52,11 +51,13 @@ func main() {
 	timer_delete_timeout := make(chan bool, 10)
 
 	//input_buttons_requests
-	input_buttons_network := make(chan elevio.ButtonEvent, 10)
+	input_buttons_network := make(chan elevio.ButtonEvent, 20)
 
 	fsm_state_requests := make(chan elevio.Elevator, 10)
 
 	fsm_deleteHallRequest_requests := make(chan elevio.ButtonEvent, 10)
+
+	requests_buttonLamp_output := make(chan elevio.ButtonEvent)
 
 	requests_state_network := make(chan elevio.Elevator, 10)
 

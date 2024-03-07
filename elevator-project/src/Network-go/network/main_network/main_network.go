@@ -240,6 +240,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			statesMsg.Iter++
 			statesTx <- statesMsg
 
+			
 		case statesMsg := <-statesRx:
 			statesRecieved := states_StringToMap(statesMsg.Message)
 
@@ -336,10 +337,14 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 						}
 					}else{
 						//fmt.Printf("sending request back\n")
-						network_hallrequest_requests <- hallreq
+						if hallRequest.Iter < 2{
+							network_hallrequest_requests <- hallreq
+						
+							hallRequest.Id = id
+							hallRequest.Iter++
+							hallRequestsTx <- hallRequest
+						}
 
-						hallRequest.Id = id
-						hallRequestsTx <- hallRequest
 					} 
 
 				case false:
@@ -355,10 +360,13 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 							unconfirmed_hallDeletes[hallreq] = append(unconfirmed_hallDeletes[hallreq], hallRequest.Id)
 						}
 					}else{
-						network_hallrequest_requests <- hallreq
-
-						hallRequest.Id = id
-						hallRequestsTx <- hallRequest
+						if hallRequest.Iter < 2{
+							network_hallrequest_requests <- hallreq
+						
+							hallRequest.Id = id
+							hallRequest.Iter++
+							hallRequestsTx <- hallRequest
+						}
 					} 
 				}
 			}
@@ -375,6 +383,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			if len(unconfirmed_hallDeletes[hallreq]) == len(peersList){
 				//fmt.Printf("everyone has recieved the delete")
 				//network_hallrequest_requests <- hallreq
+				network_hallrequest_requests <- hallreq
 				delete(unconfirmed_hallDeletes, hallreq)
 				//stoppe timer
 				//unconfirmed_hallRequestsLst[hallreq.Floor][hallreq.Button] = false

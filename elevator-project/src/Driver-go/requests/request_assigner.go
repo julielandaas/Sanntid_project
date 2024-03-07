@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	//"sync"
+	//"reflect"
+	"sync"
 	//"runtime"
 )
 
-//Var hallLightsMutex sync.Mutex
+var hallLightsMutex sync.Mutex
 
 type HRAElevState struct {
 	Behaviour   string                `json:"behaviour"`
@@ -39,8 +40,9 @@ func setAllHallLights(all_hallrequests [elevio.N_FLOORS][2]bool, requests_button
 
 func setAllCabLights(cabrequests [elevio.N_FLOORS]bool, requests_buttonLamp_output chan elevio.ButtonEvent) {
 	for floor := 0; floor < elevio.N_FLOORS; floor++ {
+		hallLightsMutex.Lock()
 		requests_buttonLamp_output <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab, Toggle: cabrequests[floor]}
-
+		hallLightsMutex.Unlock()
 		//elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
 	}
 }
@@ -88,12 +90,23 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			id = id_sent
 
 		case hallRequest := <-network_hallrequest_requests:
+
+			flag_detectedUpdate := false
+
 			switch hallRequest.Toggle {
 			case true:
-				input.HallRequests[hallRequest.Floor][hallRequest.Button] = true
+				if input.HallRequests[hallRequest.Floor][hallRequest.Button] != true{
+					input.HallRequests[hallRequest.Floor][hallRequest.Button] = true
+					flag_detectedUpdate = true
+				}
 			case false:
-				input.HallRequests[hallRequest.Floor][hallRequest.Button] = false
+				if input.HallRequests[hallRequest.Floor][hallRequest.Button] != false{
+					input.HallRequests[hallRequest.Floor][hallRequest.Button] = false
+					flag_detectedUpdate = true
+				}
 			}
+
+			if flag_detectedUpdate{
 
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
@@ -101,12 +114,17 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			updatedRequests := reassign_requests(input, id)
 			requests_updatedRequests_fsm <- *updatedRequests
+			}
+
 			//kanskje vi skulle hatt to ulike kanaler eller noe? her sender vi kanskje fort etter hverandre
 
 		case stateMap := <-network_statesMap_requests:
+			hallLightsMutex.Lock()
 			input.States = stateMap
+			hallLightsMutex.Unlock()
 
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
+
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
 			fmt.Printf("request assigner because of new state\n")
@@ -135,7 +153,7 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			*/
 
 		case delete_buttonEvent := <-fsm_deleteHallRequest_requests:
-			input.HallRequests[delete_buttonEvent.Floor][delete_buttonEvent.Button] = false
+			//input.HallRequests[delete_buttonEvent.Floor][delete_buttonEvent.Button] = false
 			requests_deleteHallRequest_network <- delete_buttonEvent
 
 			//eehh fjerne dette
@@ -175,7 +193,10 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BUTTONS]bool {
 	hraExecutable := "hall_request_assigner"
+	hallLightsMutex.Lock()
 	jsonBytes, err := json.Marshal(input)
+	hallLightsMutex.Unlock()
+
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
 		return nil
