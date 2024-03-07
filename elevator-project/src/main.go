@@ -9,10 +9,14 @@ import (
 	"Sanntid/Driver-go/requests"
 	"Sanntid/Driver-go/timer"
 	"Sanntid/Network-go/network/main_network"
+	"Sanntid/Restart-go/restart"
 	"flag"
 )
 
 func main() {
+	next_start := restart.Main_restart()
+	go restart.SendUpdateToBackup(next_start)
+
 	var port string
 	flag.StringVar(&port, "port", "", "port of elevatorserver")
 	flag.Parse()
