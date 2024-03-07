@@ -29,7 +29,7 @@ func Timer_handler(timer_open_door chan Timer_enum,timer_open_door_timeout chan 
 			}
 
 		case timeout := <- timer_pointer_door.C:
-			fmt.Printf("timer_pointer_door.C: %+v\n", timeout)
+			fmt.Printf("timeout door: %+v\n", timeout)
 			timer_open_door_timeout <- true
 
 		default:
@@ -54,7 +54,7 @@ func Timer_Requests(timer_requests chan Timer_enum,timer_requests_timeout chan b
 			}
 
 		case timeout := <- timer_pointer_requests.C:
-			fmt.Printf("timer_pointer_requests.C: %+v\n", timeout)
+			fmt.Printf("timerout requests %+v\n", timeout)
 			timer_requests_timeout <- true
 
 		default:
@@ -79,7 +79,7 @@ func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan
 			}
 
 		case timeout := <- timer_pointer_requests.C:
-			fmt.Printf("timer_pointer_delete.C: %+v\n", timeout)
+			fmt.Printf("timeout delete: %+v\n", timeout)
 			timer_delete_timeout <- true
 
 		default:

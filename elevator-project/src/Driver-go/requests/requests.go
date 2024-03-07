@@ -101,10 +101,11 @@ func Requests_shouldClearImmediately(e elevio.Elevator) bool {
     case elevio.CV_All:
         return (e.Requests[e.Floor][elevio.BT_HallUp] || e.Requests[e.Floor][elevio.BT_HallDown] || e.Requests[e.Floor][elevio.BT_Cab])
     case elevio.CV_InDirn:
-        return ((e.Dirn == elevio.D_Up   && e.Requests[e.Floor][elevio.BT_HallUp])    ||
+        return ((e.Requests[e.Floor][elevio.BT_HallUp] || e.Requests[e.Floor][elevio.BT_HallDown] || e.Requests[e.Floor][elevio.BT_Cab]) && 
+                ((e.Dirn == elevio.D_Up   && e.Requests[e.Floor][elevio.BT_HallUp])    ||
                 (e.Dirn == elevio.D_Down && e.Requests[e.Floor][elevio.BT_HallDown])  ||
                 e.Dirn == elevio.D_Stop ||
-                e.Requests[e.Floor][elevio.BT_Cab])
+                e.Requests[e.Floor][elevio.BT_Cab]))
     default:
         return false
     }

@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	//"sync"
 	//"runtime"
 )
+
+//Var hallLightsMutex sync.Mutex
 
 type HRAElevState struct {
 	Behaviour   string                `json:"behaviour"`
@@ -21,8 +24,12 @@ type HRAInput struct {
 }
 
 func setAllHallLights(all_hallrequests [elevio.N_FLOORS][2]bool, requests_buttonLamp_output chan elevio.ButtonEvent) {
+	
+
 	for floor := 0; floor < elevio.N_FLOORS; floor++ {
 		for btn := 0; btn < elevio.N_BUTTONS-1; btn++ {
+			//hallLightsMutex.Lock()
+    		//defer hallLightsMutex.Unlock()
 			requests_buttonLamp_output <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(btn), Toggle: all_hallrequests[floor][btn]}
 
 			//elevio.SetButtonLamp(elevio.ButtonType(btn), floor, elevator.Requests[floor][btn])
@@ -90,6 +97,8 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
+			fmt.Printf("request assigner because of new hall request\n")
+
 			updatedRequests := reassign_requests(input, id)
 			requests_updatedRequests_fsm <- *updatedRequests
 			//kanskje vi skulle hatt to ulike kanaler eller noe? her sender vi kanskje fort etter hverandre
@@ -97,8 +106,10 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 		case stateMap := <-network_statesMap_requests:
 			input.States = stateMap
 
+			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
+			fmt.Printf("request assigner because of new state\n")
 			updatedRequests := reassign_requests(input, id)
 			requests_updatedRequests_fsm <- *updatedRequests
 
@@ -185,9 +196,9 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 	}
 
 	fmt.Printf("output: \n")
-	for k, v := range *output {
+	/*for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
-	}
+	}*/
 
 	myRequests := (*output)[id]
 

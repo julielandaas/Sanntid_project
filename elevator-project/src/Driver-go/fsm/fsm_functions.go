@@ -120,7 +120,7 @@ func fsm_newRequests(timer_open_door chan timer.Timer_enum, fsm_motorDir_output 
 
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
-			fmt.Printf("TIMER STARTED\n")
+			fmt.Printf("TIMER STARTED in newRequests door open\n")
 
             elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
         }
@@ -140,17 +140,17 @@ func fsm_newRequests(timer_open_door chan timer.Timer_enum, fsm_motorDir_output 
             //timer_start(elevator.Config.DoorOpenDuration_s)
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
-			fmt.Printf("TIMER STARTED\n")
+			fmt.Printf("TIMER STARTED in newRequests idle\n")
 
             elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
 
         case elevio.EB_Moving:
-            fmt.Printf("trying to move\n")
+            //fmt.Printf("trying to move\n")
             fsm_motorDir_output <- elevio.MotorDirection(elevator.Dirn)
 
         case elevio.EB_Idle:
             // No additional action required
-            fmt.Printf("still idle\n")
+            //fmt.Printf("still idle\n")
         }
     }
 
@@ -175,7 +175,7 @@ func fsm_onFloorArrival(newFloor int,timer_open_door chan timer.Timer_enum, time
             //fsm_deleteCabRequest_requests <- elevator
 			
             //timer_start(elevator.Config.DoorOpenDuration_s)
-			fmt.Printf("TIMER STARTED\n")
+			fmt.Printf("TIMER STARTED in on floore arrival\n")
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
 			
@@ -205,7 +205,7 @@ func fsm_onDoorTimeout(timer_open_door chan timer.Timer_enum, timer_open_door_ti
             //timer_start(elevator.Config.DoorOpenDuration_s)
 			timer_open_door <- timer.Timer_stop
 			timer_open_door <- timer.Timer_reset
-			fmt.Printf("TIMER STARTED\n")
+			fmt.Printf("TIMER STARTED in on door timeout\n")
             elevator = requests.Requests_clearAtCurrentFloor_elevatoruse(elevator, fsm_deleteHallRequest_requests)
             //setAllLights(fsm_buttonLamp_output)
 

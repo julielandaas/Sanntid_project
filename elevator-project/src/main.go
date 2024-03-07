@@ -26,7 +26,7 @@ func main() {
 	//Config
 	doorOpenDuration_s := 3
 	requests_timeout_duration_s := 1
-	delete_timeout_duration_s := 1
+	delete_timeout_duration_s := 3
 
 	//inout to fsm channels
 	input_buttons_fsm := make(chan elevio.ButtonEvent, 10) // FJERN DINNA ASAP
@@ -36,7 +36,7 @@ func main() {
 
 	//fsm to output
 	fsm_motorDir_output := make(chan elevio.MotorDirection, 10)
-	requests_buttonLamp_output := make(chan elevio.ButtonEvent, 10)
+	requests_buttonLamp_output := make(chan elevio.ButtonEvent, 20)
 	fsm_floorIndicator_output := make(chan int, 10)
 	fsm_doorLamp_output := make(chan bool, 10)
 	//fsm_stopLamp_output := make(chan bool)
