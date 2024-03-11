@@ -9,19 +9,32 @@ import (
 	"Sanntid/Driver-go/requests"
 	"Sanntid/Driver-go/timer"
 	"Sanntid/Network-go/network/main_network"
-	"Sanntid/Restart-go/restart"
+	//"Sanntid/Restart-go/restart"
 	"flag"
 )
 
+
+// må håndtere å fjerne når en pc suger... typ 80% pakketap
+// må også klare å finne ut når en sjølv suger.. og fjerne seg sjølv fra nettet
+
+// når ny heis kjem på nett, må dei få tilbake cab-calls pg hall-calls
+
+
+
 func main() {
-	next_start := restart.Main_restart()
-	go restart.SendUpdateToBackup(next_start)
+	//next_start := restart.Main_restart()
+	//go restart.SendUpdateToBackup(next_start)
 
 	var port string
+	var id string
+	//id = "1"
 	flag.StringVar(&port, "port", "", "port of elevatorserver")
+	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
 
 	elevio.Init("localhost:"+port, elevio.N_FLOORS)
+
+
 
 	//var d elevio.MotorDirection = elevio.MD_Up
 	//elevio.SetMotorDirection(d)
@@ -29,9 +42,9 @@ func main() {
 	//fsm.Fsm_onInitBe floors := <
 	//Config
 	doorOpenDuration_s := 3
-	requests_timeout_duration_s := 1
-	delete_timeout_duration_s := 3
-
+	requests_timeout_duration_ms := 50
+	delete_timeout_duration_ms := 200
+	states_timeout_duration_ms := 50
 	//input to fsm channels
 	input_buttons_fsm := make(chan elevio.ButtonEvent, 30)
 	input_floors_fsm := make(chan int)
@@ -54,6 +67,9 @@ func main() {
 	timer_delete := make(chan timer.Timer_enum, 10)
 	timer_delete_timeout := make(chan bool, 10)
 
+	timer_states := make(chan timer.Timer_enum, 10)
+	timer_states_timeout := make(chan bool, 10)
+
 	//input_buttons_requests
 	input_buttons_network := make(chan elevio.ButtonEvent, 20)
 
@@ -71,10 +87,11 @@ func main() {
 	network_hallrequest_requests := make(chan elevio.ButtonEvent, 10)
 	network_statesMap_requests := make(chan map[string]requests.HRAElevState, 10)
 	network_id_requests := make(chan string, 10)
+	network_deadPeerMap_requests := make(chan map[string][elevio.N_FLOORS]bool, 10)
 
 	go main_network.Main_network(requests_state_network, input_buttons_network, network_hallrequest_requests, network_statesMap_requests, network_id_requests, 
-		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, requests_timeout_duration_s, 
-		timer_delete,timer_delete_timeout, delete_timeout_duration_s)
+		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, timer_delete,timer_delete_timeout, timer_states, timer_states_timeout, id,
+		network_deadPeerMap_requests)
 	go inputdevice.Inputdevice(input_buttons_network, input_floors_fsm, input_obstr_fsm)
 	go outputdevice.Outputdevice(fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
 
@@ -83,10 +100,11 @@ func main() {
 		fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output, fsm_state_requests, fsm_deleteHallRequest_requests,
 		requests_updatedRequests_fsm)
 	go requests.Request_assigner(fsm_state_requests, fsm_deleteHallRequest_requests, requests_state_network, network_hallrequest_requests,
-		network_statesMap_requests, network_id_requests, requests_updatedRequests_fsm, requests_deleteHallRequest_network, requests_buttonLamp_output)
-	go timer.Timer_Requests(timer_requests, timer_requests_timeout, requests_timeout_duration_s)
+		network_statesMap_requests, network_id_requests, requests_updatedRequests_fsm, requests_deleteHallRequest_network, requests_buttonLamp_output, network_deadPeerMap_requests)
+	go timer.Timer_Requests(timer_requests, timer_requests_timeout, requests_timeout_duration_ms)
 
-	go timer.Timer_deleteRequests(timer_delete,timer_delete_timeout, delete_timeout_duration_s)
+	go timer.Timer_deleteRequests(timer_delete,timer_delete_timeout, delete_timeout_duration_ms)
+	go timer.Timer_states(timer_states, timer_states_timeout, states_timeout_duration_ms)
 
 	for {
 

@@ -4,7 +4,7 @@ import (
 	"Sanntid/Driver-go/elevio"
 	"Sanntid/Driver-go/timer"
 	"fmt"
-	"time"
+	//"time"
 	"reflect"
 
 )
@@ -22,7 +22,7 @@ func Fsm(input_buttons_fsm chan elevio.ButtonEvent, input_floors_fsm chan int, i
 	elevator = elevio.Elevator_uninitialized()
 	fsm_onInitBetweenFloors(fsm_motorDir_output)
 	
-	time.Sleep(1*time.Second)
+	//time.Sleep(1*time.Second)
 	fsm_state_requests <- elevator
 	// local data
 	//stop_pressed_prev := false

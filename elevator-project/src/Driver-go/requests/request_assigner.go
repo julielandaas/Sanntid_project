@@ -49,8 +49,11 @@ func setAllCabLights(cabrequests [elevio.N_FLOORS]bool, requests_buttonLamp_outp
 
 func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallRequest_requests chan elevio.ButtonEvent, requests_state_network chan elevio.Elevator,
 	network_hallrequest_requests chan elevio.ButtonEvent, network_statesMap_requests chan map[string]HRAElevState, network_id_requests chan string,
-	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool, requests_deleteHallRequest_network chan elevio.ButtonEvent, requests_buttonLamp_output chan elevio.ButtonEvent) {
+	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool, requests_deleteHallRequest_network chan elevio.ButtonEvent, requests_buttonLamp_output chan elevio.ButtonEvent,
+	network_deadPeerMap_requests chan map[string][elevio.N_FLOORS]bool) {
 	var id string
+	Initialized_flag := false
+	deadPeerMap := make(map[string][elevio.N_FLOORS]bool)
 	/*
 			//HRA_output := make(chan )
 		myState := HRAElevState{
@@ -86,6 +89,19 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 				reassign_requests(input)
 
 		*/
+		case deadPeerMap = <- network_deadPeerMap_requests:
+			/*
+			if(Initialized_flag){
+				for i := 0; i < len(deadPeerLst); i++ {
+					delete(input.States, deadPeerLst[i])
+					
+				}
+
+				updatedRequests := reassign_requests(input, id)
+				requests_updatedRequests_fsm <- *updatedRequests
+			}
+			*/
+
 		case id_sent := <-network_id_requests:
 			id = id_sent
 
@@ -111,14 +127,23 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
 			fmt.Printf("request assigner because of new hall request\n")
+			if(Initialized_flag){
+				for k,_ := range deadPeerMap {
+					delete(input.States, k)
+					
+				}
 
-			updatedRequests := reassign_requests(input, id)
-			requests_updatedRequests_fsm <- *updatedRequests
+				updatedRequests := reassign_requests(input, id)
+				requests_updatedRequests_fsm <- *updatedRequests
+			}
 			}
 
 			//kanskje vi skulle hatt to ulike kanaler eller noe? her sender vi kanskje fort etter hverandre
 
 		case stateMap := <-network_statesMap_requests:
+			if (!Initialized_flag){
+				Initialized_flag = true
+			}
 			hallLightsMutex.Lock()
 			input.States = stateMap
 			hallLightsMutex.Unlock()
@@ -128,9 +153,13 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
 			fmt.Printf("request assigner because of new state\n")
+			for k,_ := range deadPeerMap {
+				delete(input.States, k)
+				
+			}
 			updatedRequests := reassign_requests(input, id)
 			requests_updatedRequests_fsm <- *updatedRequests
-
+			
 			// MULIG FUCK-UP, SÅ SJEKK HER VISS DET BLIR FEIL
 		case state := <-fsm_state_requests:
 			requests_state_network <- state
