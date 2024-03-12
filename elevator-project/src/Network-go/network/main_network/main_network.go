@@ -87,13 +87,13 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 	network_statesMap_requests chan map[string]requests.HRAElevState, network_id_requests chan string, requests_deleteHallRequest_network chan elevio.ButtonEvent,
 	timer_requests chan timer.Timer_enum, timer_requests_timeout chan bool, timer_delete chan timer.Timer_enum, timer_delete_timeout chan bool,
 	timer_states chan timer.Timer_enum, timer_states_timeout chan bool, id string, network_peersList_requests chan []string,
-	requests_resendHallrequests_network chan elevio.ButtonEvent) {
+	requests_resendHallrequests_network chan elevio.ButtonEvent, timer_reAlivePeer_CabAgreement chan timer.Timer_enum, timer_reAlivePeer_CabAgreement_timeout chan bool) {
 	// Our id can be anything. Here we pass it on the command line, using
 	//  `go run main.go -id=our_id`
 
 	peersList := []string {}
 	RetrievedCabrequests_flag := false // skal motta cabreq fra andre heiser ved oppstart, viss man har dødd
-	timeout_counter := 0
+	
 
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the
@@ -113,6 +113,8 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 	unconfirmed_hallDeletes := make(map[elevio.ButtonEvent][]string)
 	var stateAgreementLst []string                         // inneholder id-ene til de heisene som er enig med staten vår
 	deadPeersMap := make(map[string][elevio.N_FLOORS]bool) // mapper cabreqs på id-ene
+	
+	reAlivePeer_CabAgreementLst := []string {} // inneholder id-ene til heisene som kommer på nettet igjen etter å ha vært døde
 
 	//unconfirmed_hallRequestsLst := [][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
 
@@ -337,55 +339,37 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			
 
 		case statesMsg := <-statesRx:
-			timeout_counter = 0
+			
 			fmt.Printf("recieved on statesRx\n")
 			statesMsg_recieved_id := statesMsg.Id
 			statesMsg_recieved_iter := statesMsg.Iter
 			statesMsg_recieved_states := states_StringToMap(statesMsg.Message)
 			//fmt.Printf("1. in statesRx: %s\n", states_MapToString(states))
+			/*
+			for i := 0; i < len(reAlivePeer_CabAgreementLst); i++ {
+				if reAlivePeer_CabAgreementLst[i] == statesMsg_recieved_id {
+					if statesMsg_recieved_states[statesMsg_recieved_id].CabRequests == states[statesMsg_recieved_id].CabRequests ||
+					   statesMsg_recieved_states[statesMsg_recieved_id].Floor {
+
+					}
+				}
+			}*/
+			if statesMsg_recieved_iter == 201{
+				var temp_reAlivePeer_CabAgreementLst []string
+				for i := 0; i < len(reAlivePeer_CabAgreementLst); i++ {
+					if reAlivePeer_CabAgreementLst[i] != statesMsg_recieved_id  {
+						temp_reAlivePeer_CabAgreementLst = append(temp_reAlivePeer_CabAgreementLst, reAlivePeer_CabAgreementLst[i])
+					}
+				}
+				reAlivePeer_CabAgreementLst = temp_reAlivePeer_CabAgreementLst
+			}
+			
 
 			_, ok := states[statesMsg_recieved_id]
-			if !ok { // mottar fra en heis vi ikkje har i map-et fra før av
+			// mottar fra en heis vi ikkje har i map-et fra før av
+			if !ok { 
 
-				// jeg er ikke ny selv, noen andre er nye
-				/*_, ok := deadPeersMap[statesMsg_recieved_id]
-				if ok { // viss den har vært død, og jeg har den ikke i mitt statemap lenger
-					states[statesMsg_recieved_id] = statesMsg_recieved_states[statesMsg_recieved_id]
-					temp_state := states[statesMsg_recieved_id]
-					temp_state.CabRequests = deadPeersMap[statesMsg_recieved_id]
-					states[statesMsg_recieved_id] = temp_state
-
-					for k, _ := range deadPeersMap {
-						if (k != id) && (k != statesMsg_recieved_id) {
-							states[k] = requests.HRAElevState{
-								Behaviour:   "idle",
-								Floor:       0,
-								Direction:   "stop",
-								CabRequests: deadPeersMap[k],
-							}
-						}
-					}
-
-					delete(deadPeersMap, statesMsg_recieved_id)
-					network_deadPeerMap_requests <- deadPeersMap
-
-					fmt.Printf("Peer alive, DeadPeers: %+v\n", deadPeersMap)
-					fmt.Printf("Previous Cabrequests: %+v\n", states[statesMsg_recieved_id].CabRequests)
-					/*
-						for i := 0; i < 4; i++ {
-							statesMsg := HelloMsg{id, states_MapToString(states), 0}
-							statesMsg.Iter++
-							statesTx <- statesMsg
-						}*/
-
-				/*
-					statesMsg := HelloMsg{id, states_MapToString(states), 0}
-					statesMsg.Iter++
-					statesTx <- statesMsg
-				*/
-				// sender lenger nede
-				//}
-
+				
 				//fmt.Printf("2. in statesRx: %s\n", states_MapToString(states))
 
 				// jeg er ny selv, og må få gamle cab-reqs tilbake.
@@ -394,7 +378,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				//_, myidInRecievedState := statesMsg_recieved_states[id]
 				states[statesMsg_recieved_id] = statesMsg_recieved_states[statesMsg_recieved_id]
 
-				if !RetrievedCabrequests_flag {
+				if statesMsg_recieved_iter == 200 && !RetrievedCabrequests_flag {
 					//states[statesMsg_recieved_id] = statesMsg_recieved_states[statesMsg_recieved_id]
 
 					//fmt.Printf("Retrieved states: %+v\n", statesMsg_recieved_states)
@@ -439,23 +423,27 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					statesMutex.Unlock()
 
 					network_statesMap_requests <- stateCopy
-					/*
-						statesMsg := HelloMsg{id, states_MapToString(states), 0}
-						statesMsg.Iter++
-						statesTx <- statesMsg
-						fmt.Printf("new state sent back, %+v\n", statesMsg.Message)
-					*/
+					
+					//fmt.Printf("new state sent back, %+v\n", statesMsg.Message)
+
+					statesMsg := HelloMsg{id, states_MapToString(states), 0}
+					statesMsg.Iter = statesMsg_recieved_iter + 1
+					statesTx <- statesMsg
 
 					RetrievedCabrequests_flag = true
 
+				} else {
+					statesMsg := HelloMsg{id, states_MapToString(states), 0}
+					statesMsg.Iter++
+					statesTx <- statesMsg
 				}
 
-				statesMsg := HelloMsg{id, states_MapToString(states), 0}
-				statesMsg.Iter++
-				statesTx <- statesMsg
+
+				
 				//fmt.Printf("new state sent back, %+v\n", statesMsg.Message)
 
-			} else if statesMsg_recieved_id != id { // mottar fra noken andre, men den er IKKJE NY
+			// mottar fra noken andre, men den er IKKJE NY
+			} else if statesMsg_recieved_id != id { 
 				/*
 					var deadPeers_temp []string
 					for i := 0; i < len(deadPeers); i++ {
@@ -476,29 +464,20 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					}
 
 					delete(deadPeersMap, statesMsg_recieved_id)
+					reAlivePeer_CabAgreementLst = append(reAlivePeer_CabAgreementLst, statesMsg_recieved_id)
 					
 
 					fmt.Printf("Peer alive, DeadPeers: %+v\n", deadPeersMap)
 					fmt.Printf("Previous Cabrequests: %+v\n", states[statesMsg_recieved_id].CabRequests)
 
 					statesMsg := HelloMsg{id, states_MapToString(states), 0}
-					statesMsg.Iter++
+					statesMsg.Iter = 200
 					statesTx <- statesMsg
 
-					//resende hallRequests
-					
+					timer_reAlivePeer_CabAgreement <- timer.Timer_stop
+					timer_reAlivePeer_CabAgreement <- timer.Timer_reset
 
-		
-					
-					
-
-					/*
-						for i := 0; i < 5; i++ {
-							statesMsg := HelloMsg{id, states_MapToString(states), 0}
-							statesMsg.Iter++
-							statesTx <- statesMsg
-						}*/
-
+				
 				} else if !reflect.DeepEqual(states[statesMsg_recieved_id], statesMsg_recieved_states[statesMsg_recieved_id]) { // dei gir oss ny informasjon om seg sjølv
 					//fmt.Printf("new state has changed\n")
 					//fmt.Printf("4. in statesRX: %s\n", states_MapToString(states))
@@ -507,12 +486,14 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					statesMsg := HelloMsg{id, states_MapToString(states), 0}
 					statesMsg.Iter++
 					statesTx <- statesMsg
+
 				} else {
 					if statesMsg_recieved_iter == 100 {
 						statesMsg := HelloMsg{id, states_MapToString(states), 0}
 						statesMsg.Iter++
 						statesTx <- statesMsg
 					}
+
 				}
 
 				//states[statesMsg.Id] = statesMsg_recieved_states[statesMsg.Id]
@@ -589,7 +570,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			
 
 		case hallRequest := <-hallRequestsRx:
-			timeout_counter = 0
+			
 			//fmt.Printf(hallRequest.Id)
 			hallreq := *buttonEvent_StringToStruct(hallRequest.Message)
 			//fmt.Printf("Recieved hall request from peer %+v, floor: %+v\n",hallRequest.Id, hallreq.Floor)
@@ -668,7 +649,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			}
 
 		case <-timer_requests_timeout:
-			timeout_counter ++
+			
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
 			if len(unconfirmed_hallRequests) != 0 {
@@ -685,7 +666,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				timer_requests <- timer.Timer_stop
 			}
 		case <-timer_delete_timeout:
-			timeout_counter++
+			
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
 			if len(unconfirmed_hallDeletes) != 0 {
@@ -702,7 +683,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				timer_delete <- timer.Timer_stop
 			}
 		case <-timer_states_timeout:
-			timeout_counter++
+			
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
 			if (len(stateAgreementLst) < len(peersList)) || (len(peersList) == 1) {
@@ -714,9 +695,25 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				timer_states <- timer.Timer_stop
 				timer_states <- timer.Timer_reset
 			}
+		case <- timer_reAlivePeer_CabAgreement_timeout: // USIKKER PÅ OM DETTE FUNKER
+			if len(reAlivePeer_CabAgreementLst) > 0 {
+
+				for i := 0; i < len(reAlivePeer_CabAgreementLst); i++ {
+
+					statesMsg := HelloMsg{id, states_MapToString(states), 0}
+					statesMsg.Iter = 200
+					statesTx <- statesMsg
+					
+					timer_reAlivePeer_CabAgreement <- timer.Timer_stop
+					timer_reAlivePeer_CabAgreement <- timer.Timer_reset
+				}
+			} else {
+				timer_reAlivePeer_CabAgreement <- timer.Timer_stop
+			}
 
 		default:
 
 		}
 	}
 }
+// må legge in at den nye heisen som gjenoppstår fra de døde må blokke alt av nye ordre fram til "fasiten" aka 200-meldinga er godkjent

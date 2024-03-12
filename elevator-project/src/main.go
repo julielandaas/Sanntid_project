@@ -43,6 +43,7 @@ func main() {
 	requests_timeout_duration_ms := 100
 	delete_timeout_duration_ms := 200
 	states_timeout_duration_ms := 100
+	reAlivePeer_CabAgreement_timeout_duration_ms := 100
 	//input to fsm channels
 	input_buttons_fsm := make(chan elevio.ButtonEvent, 30)
 	input_floors_fsm := make(chan int)
@@ -68,6 +69,9 @@ func main() {
 	timer_states := make(chan timer.Timer_enum, 10)
 	timer_states_timeout := make(chan bool, 10)
 
+	timer_reAlivePeer_CabAgreement := make(chan timer.Timer_enum, 10)
+	timer_reAlivePeer_CabAgreement_timeout := make(chan bool, 10)
+
 	//input_buttons_requests
 	input_buttons_network := make(chan elevio.ButtonEvent, 20)
 
@@ -92,7 +96,7 @@ func main() {
 
 	go main_network.Main_network(requests_state_network, input_buttons_network, network_hallrequest_requests, network_statesMap_requests, network_id_requests,
 		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, timer_delete, timer_delete_timeout, timer_states, timer_states_timeout, id,
-		network_peersList_requests, requests_resendHallrequests_network)
+		network_peersList_requests, requests_resendHallrequests_network, timer_reAlivePeer_CabAgreement, timer_reAlivePeer_CabAgreement_timeout)
 	
 	go inputdevice.Inputdevice(input_buttons_network, input_floors_fsm, input_obstr_fsm)
 	go outputdevice.Outputdevice(fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
@@ -108,6 +112,7 @@ func main() {
 
 	go timer.Timer_deleteRequests(timer_delete, timer_delete_timeout, delete_timeout_duration_ms)
 	go timer.Timer_states(timer_states, timer_states_timeout, states_timeout_duration_ms)
+	go timer.Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement, timer_reAlivePeer_CabAgreement_timeout, reAlivePeer_CabAgreement_timeout_duration_ms)
 
 	for {
 

@@ -113,3 +113,28 @@ func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool, s
 
 	}
 }
+
+func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_enum, timer_reAlivePeer_CabAgreement_timeout chan bool, reAlivePeer_CabAgreement_timeout_duration_ms int){
+	timer_pointer_reAlivePeer_CabAgreement := time.NewTimer(time.Duration(reAlivePeer_CabAgreement_timeout_duration_ms)*(time.Millisecond))
+	timer_pointer_reAlivePeer_CabAgreement.Stop()
+
+	for{
+		select{
+		case timer_info := <- timer_reAlivePeer_CabAgreement:
+			switch(timer_info){
+			case Timer_stop:
+				timer_pointer_reAlivePeer_CabAgreement.Stop()
+			case Timer_reset:
+			timer_pointer_reAlivePeer_CabAgreement.Reset(time.Duration(reAlivePeer_CabAgreement_timeout_duration_ms)*(time.Millisecond))
+			}
+
+		case timeout := <- timer_pointer_reAlivePeer_CabAgreement.C:
+			fmt.Printf("timeout realivepeer cabrequests: %+v\n", timeout)
+			timer_reAlivePeer_CabAgreement_timeout <- true
+
+		default:
+			//nothing happens
+		}
+
+	}
+}
