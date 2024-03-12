@@ -22,6 +22,7 @@ import (
 //
 
 var statesMutex sync.Mutex
+var deadPeerMapMutex sync.Mutex
 
 // will be received as zero-values.
 type HelloMsg struct {
@@ -85,12 +86,14 @@ func buttonEvent_StringToStruct(message string) *elevio.ButtonEvent {
 func Main_network(requests_state_network chan elevio.Elevator, input_buttons_network chan elevio.ButtonEvent, network_hallrequest_requests chan elevio.ButtonEvent,
 	network_statesMap_requests chan map[string]requests.HRAElevState, network_id_requests chan string, requests_deleteHallRequest_network chan elevio.ButtonEvent,
 	timer_requests chan timer.Timer_enum, timer_requests_timeout chan bool, timer_delete chan timer.Timer_enum, timer_delete_timeout chan bool,
-	timer_states chan timer.Timer_enum, timer_states_timeout chan bool, id string, network_deadPeerMap_requests chan map[string][elevio.N_FLOORS]bool) {
+	timer_states chan timer.Timer_enum, timer_states_timeout chan bool, id string, network_peersList_requests chan []string,
+	requests_resendHallrequests_network chan elevio.ButtonEvent) {
 	// Our id can be anything. Here we pass it on the command line, using
 	//  `go run main.go -id=our_id`
 
-	var peersList []string
+	peersList := []string {}
 	RetrievedCabrequests_flag := false // skal motta cabreq fra andre heiser ved oppstart, viss man har dødd
+	timeout_counter := 0
 
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the
@@ -175,30 +178,49 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				state_temp.CabRequests[button_request.Floor] = true
 				states[id] = state_temp
 
-				stateAgreementLst = nil
-				stateAgreementLst = append(stateAgreementLst, id)
+				if len(peersList) == 0{
+					statesMutex.Lock()
+					stateCopy := make(map[string]requests.HRAElevState)
+					for k, v := range states {
+						stateCopy[k] = v
+					}
+					statesMutex.Unlock()
+					network_statesMap_requests <- stateCopy
 
-				statesMsg := HelloMsg{id, states_MapToString(states), 0}
-				statesMsg.Iter++
-				statesTx <- statesMsg
+					timer_requests <- timer.Timer_stop
+					timer_delete <- timer.Timer_stop
+					timer_states <- timer.Timer_stop
 
-				timer_states <- timer.Timer_stop
-				timer_states <- timer.Timer_reset
-				//fmt.Printf("state timer started\n")
-				//fmt.Printf("in button_request: %s\n", states_MapToString(states))
+				}else{
+					stateAgreementLst = nil
+					stateAgreementLst = append(stateAgreementLst, id)
+
+					statesMsg := HelloMsg{id, states_MapToString(states), 0}
+					statesMsg.Iter++
+					statesTx <- statesMsg
+
+					
+
+					timer_states <- timer.Timer_stop
+					timer_states <- timer.Timer_reset
+					//fmt.Printf("state timer started\n")
+					//fmt.Printf("in button_request: %s\n", states_MapToString(states))				
+				}
 
 			} else {
 				//unconfirmed_hallRequestsLst[button_request.Floor][button_request.Button] = true
-				_, ok := unconfirmed_hallRequests[button_request]
-				if !ok {
-					unconfirmed_hallRequests[button_request] = append(unconfirmed_hallRequests[button_request], id)
+				if len(peersList) > 0 {
+					_, ok := unconfirmed_hallRequests[button_request]
+					if !ok {
+						unconfirmed_hallRequests[button_request] = append(unconfirmed_hallRequests[button_request], id)
 
-					hallRequestMsg := HelloMsg{id, buttonEvent_StructToString(button_request), 0}
-					hallRequestMsg.Iter++
-					hallRequestsTx <- hallRequestMsg
+						hallRequestMsg := HelloMsg{id, buttonEvent_StructToString(button_request), 0}
+						hallRequestMsg.Iter++
+						hallRequestsTx <- hallRequestMsg
 
-					timer_requests <- timer.Timer_stop
-					timer_requests <- timer.Timer_reset
+						timer_requests <- timer.Timer_stop
+						timer_requests <- timer.Timer_reset
+					}
 				}
 
 				//fmt.Println("Recieved button press in network module")
@@ -206,6 +228,18 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				//newHallRequest = button_requesT
 
 			}
+		case pseudo_buttonevent := <- requests_resendHallrequests_network:
+			_, ok := unconfirmed_hallRequests[pseudo_buttonevent]
+				if !ok {
+					unconfirmed_hallRequests[pseudo_buttonevent] = append(unconfirmed_hallRequests[pseudo_buttonevent], id)
+
+					hallRequestMsg := HelloMsg{id, buttonEvent_StructToString(pseudo_buttonevent), 0}
+					hallRequestMsg.Iter++
+					hallRequestsTx <- hallRequestMsg
+
+					timer_requests <- timer.Timer_stop
+					timer_requests <- timer.Timer_reset
+				}
 
 		case p := <-peerUpdateCh:
 			//fmt.Printf("recieved on peerupdatech\n")
@@ -232,9 +266,20 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				}
 
 			}
-			network_deadPeerMap_requests <- deadPeersMap
-			fmt.Printf("DeadPeers: %+v\n", deadPeersMap)
 
+			network_peersList_requests <- peersList
+			fmt.Printf("resending peersList: %+v\n", peersList)
+
+			
+			/*
+			deadPeersMap_copy := make(map[string][elevio.N_FLOORS]bool)
+			deadPeerMapMutex.Lock()
+			for k, v := range deadPeersMap {
+				deadPeersMap_copy[k] = v
+			}
+			deadPeerMapMutex.Unlock()
+			*/
+			
 
 
 			/*
@@ -252,6 +297,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 
 		case mystate := <-requests_state_network:
 			//fmt.Printf("1. in mystate: %s\n", states_MapToString(states))
+
 			cabRequests_temp := [elevio.N_FLOORS]bool{false, false, false, false}
 
 			for f := 0; f < elevio.N_FLOORS; f++ {
@@ -268,19 +314,31 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				CabRequests: cabRequests_temp,
 			}
 
-			stateAgreementLst = nil
-			stateAgreementLst = append(stateAgreementLst, id)
-			//fmt.Printf("2. in mystate: %s\n", states_MapToString(states))
-			statesMsg := HelloMsg{id, states_MapToString(states), 0}
-			statesMsg.Iter++
-			statesTx <- statesMsg
+			
+			if len(peersList) == 0 {
+				network_statesMap_requests <- states
 
-			timer_states <- timer.Timer_stop
-			timer_states <- timer.Timer_reset
-			//fmt.Printf("state timer started\n")
+				timer_requests <- timer.Timer_stop
+				timer_delete <- timer.Timer_stop
+				timer_states <- timer.Timer_stop
+			} else {
+				
+				stateAgreementLst = nil
+				stateAgreementLst = append(stateAgreementLst, id)
+				//fmt.Printf("2. in mystate: %s\n", states_MapToString(states))
+				statesMsg := HelloMsg{id, states_MapToString(states), 0}
+				statesMsg.Iter++
+				statesTx <- statesMsg
+
+				timer_states <- timer.Timer_stop
+				timer_states <- timer.Timer_reset
+				//fmt.Printf("state timer started\n")
+			}
+			
 
 		case statesMsg := <-statesRx:
-			//fmt.Printf("recieved on statesRx\n")
+			timeout_counter = 0
+			fmt.Printf("recieved on statesRx\n")
 			statesMsg_recieved_id := statesMsg.Id
 			statesMsg_recieved_iter := statesMsg.Iter
 			statesMsg_recieved_states := states_StringToMap(statesMsg.Message)
@@ -407,26 +465,18 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					}*/
 
 				_, ok := deadPeersMap[statesMsg_recieved_id] // den har dødd, men vi har ikkje rukke å gjort noke, dermed heller ikkje sletta den fra map-et vårt
-
 				if ok {
-					temp_state := states[statesMsg_recieved_id]
-					temp_state.CabRequests = deadPeersMap[statesMsg_recieved_id]
-					states[statesMsg_recieved_id] = temp_state
-
 					
 					for k, _ := range deadPeersMap {
-						if (k != id) && (k != statesMsg_recieved_id) {
-							states[k] = requests.HRAElevState{
-								Behaviour:   "idle",
-								Floor:       0,
-								Direction:   "stop",
-								CabRequests: deadPeersMap[k],
-							}
+						if (k != id) {
+							temp_state := states[k]
+							temp_state.CabRequests = deadPeersMap[k]
+							states[k] = temp_state
 						}
 					}
 
 					delete(deadPeersMap, statesMsg_recieved_id)
-					network_deadPeerMap_requests <- deadPeersMap
+					
 
 					fmt.Printf("Peer alive, DeadPeers: %+v\n", deadPeersMap)
 					fmt.Printf("Previous Cabrequests: %+v\n", states[statesMsg_recieved_id].CabRequests)
@@ -434,6 +484,13 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					statesMsg := HelloMsg{id, states_MapToString(states), 0}
 					statesMsg.Iter++
 					statesTx <- statesMsg
+
+					//resende hallRequests
+					
+
+		
+					
+					
 
 					/*
 						for i := 0; i < 5; i++ {
@@ -506,22 +563,33 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			//fmt.Printf("recieved on requsts_deletedhallrequest_network\n")
 			//fmt.Printf("\ntrying to delete hall\n")
 
-			_, ok := unconfirmed_hallDeletes[deleted_Hallrequest]
-			if !ok {
-				unconfirmed_hallDeletes[deleted_Hallrequest] = append(unconfirmed_hallRequests[deleted_Hallrequest], id)
+			if len(peersList) == 0{
+				network_hallrequest_requests <- deleted_Hallrequest
+
+				timer_requests <- timer.Timer_stop
+				timer_delete <- timer.Timer_stop
+				timer_states <- timer.Timer_stop
+			}else{
+				_, ok := unconfirmed_hallDeletes[deleted_Hallrequest]
+				if !ok {
+					unconfirmed_hallDeletes[deleted_Hallrequest] = append(unconfirmed_hallRequests[deleted_Hallrequest], id)
+				}
+
+				//fmt.Println("Recieved button press in network module")
+				//sende en update til netttverket
+				//newHallRequest = button_request
+				hallDeleteMsg := HelloMsg{id, buttonEvent_StructToString(deleted_Hallrequest), 0}
+				hallDeleteMsg.Iter++
+				hallRequestsTx <- hallDeleteMsg
+
+				timer_delete <- timer.Timer_stop
+				timer_delete <- timer.Timer_reset
 			}
 
-			//fmt.Println("Recieved button press in network module")
-			//sende en update til netttverket
-			//newHallRequest = button_request
-			hallDeleteMsg := HelloMsg{id, buttonEvent_StructToString(deleted_Hallrequest), 0}
-			hallDeleteMsg.Iter++
-			hallRequestsTx <- hallDeleteMsg
-
-			timer_delete <- timer.Timer_stop
-			timer_delete <- timer.Timer_reset
+			
 
 		case hallRequest := <-hallRequestsRx:
+			timeout_counter = 0
 			//fmt.Printf(hallRequest.Id)
 			hallreq := *buttonEvent_StringToStruct(hallRequest.Message)
 			//fmt.Printf("Recieved hall request from peer %+v, floor: %+v\n",hallRequest.Id, hallreq.Floor)
@@ -575,29 +643,32 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 					}
 				}
 			}
-
+			
 			if len(unconfirmed_hallRequests[hallreq]) == len(peersList) {
 				//fmt.Printf("everyone has recieved the order")
 				network_hallrequest_requests <- hallreq
 				delete(unconfirmed_hallRequests, hallreq)
 				//stoppe timer
-				timer_requests <- timer.Timer_stop
+				//timer_requests <- timer.Timer_stop
 				//unconfirmed_hallRequestsLst[hallreq.Floor][hallreq.Button] = false
 
 			}
-
+			fmt.Printf("unconfirmedhallDeletes[hallreq] = %+v\n", unconfirmed_hallDeletes)
+			fmt.Printf("peerslist = %+v\n", peersList)
 			if len(unconfirmed_hallDeletes[hallreq]) == len(peersList) {
 				//fmt.Printf("everyone has recieved the delete")
 				//network_hallrequest_requests <- hallreq
 				network_hallrequest_requests <- hallreq
 				delete(unconfirmed_hallDeletes, hallreq)
-				timer_delete <- timer.Timer_stop
+
+				//timer_delete <- timer.Timer_stop
 
 				//unconfirmed_hallRequestsLst[hallreq.Floor][hallreq.Button] = false
 
 			}
 
 		case <-timer_requests_timeout:
+			timeout_counter ++
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
 			if len(unconfirmed_hallRequests) != 0 {
@@ -610,8 +681,11 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				timer_requests <- timer.Timer_stop
 				timer_requests <- timer.Timer_reset
 
+			}else{
+				timer_requests <- timer.Timer_stop
 			}
 		case <-timer_delete_timeout:
+			timeout_counter++
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
 			if len(unconfirmed_hallDeletes) != 0 {
@@ -624,11 +698,14 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				timer_delete <- timer.Timer_stop
 				timer_delete <- timer.Timer_reset
 
+			}else{
+				timer_delete <- timer.Timer_stop
 			}
 		case <-timer_states_timeout:
+			timeout_counter++
 			//sjekk om unconfirmed hallrequests er empty,   hvis den ikke er det må vi gå gjennom requestsene i unconfirmed requests og sende de på nytt, deretter starte timeren igjen
 
-			if len(stateAgreementLst) < len(peersList) {
+			if (len(stateAgreementLst) < len(peersList)) || (len(peersList) == 1) {
 
 				statesMsg := HelloMsg{id, states_MapToString(states), 0}
 				statesMsg.Iter = 100
@@ -636,7 +713,6 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 
 				timer_states <- timer.Timer_stop
 				timer_states <- timer.Timer_reset
-
 			}
 
 		default:

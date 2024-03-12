@@ -31,6 +31,7 @@ func main() {
 	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
 
+	//delay hvis vi må starte progrmmet selv
 	elevio.Init("localhost:"+port, elevio.N_FLOORS)
 
 	//var d elevio.MotorDirection = elevio.MD_Up
@@ -84,11 +85,14 @@ func main() {
 	network_hallrequest_requests := make(chan elevio.ButtonEvent, 10)
 	network_statesMap_requests := make(chan map[string]requests.HRAElevState, 10)
 	network_id_requests := make(chan string, 10)
-	network_deadPeerMap_requests := make(chan map[string][elevio.N_FLOORS]bool, 10)
+	
+	// reasign hallreqs når ny heis kjem til live
+	network_peersList_requests := make(chan []string, 10)
+	requests_resendHallrequests_network := make(chan elevio.ButtonEvent)
 
 	go main_network.Main_network(requests_state_network, input_buttons_network, network_hallrequest_requests, network_statesMap_requests, network_id_requests,
 		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, timer_delete, timer_delete_timeout, timer_states, timer_states_timeout, id,
-		network_deadPeerMap_requests)
+		network_peersList_requests, requests_resendHallrequests_network)
 	
 	go inputdevice.Inputdevice(input_buttons_network, input_floors_fsm, input_obstr_fsm)
 	go outputdevice.Outputdevice(fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
@@ -98,7 +102,8 @@ func main() {
 		requests_updatedRequests_fsm)
 	go timer.Timer_handler(timer_open_door, timer_open_door_timeout, doorOpenDuration_s)
 	go requests.Request_assigner(fsm_state_requests, fsm_deleteHallRequest_requests, requests_state_network, network_hallrequest_requests,
-		network_statesMap_requests, network_id_requests, requests_updatedRequests_fsm, requests_deleteHallRequest_network, requests_buttonLamp_output, network_deadPeerMap_requests)
+		network_statesMap_requests, network_id_requests, requests_updatedRequests_fsm, requests_deleteHallRequest_network, 
+		requests_buttonLamp_output, network_peersList_requests, requests_resendHallrequests_network)
 	go timer.Timer_Requests(timer_requests, timer_requests_timeout, requests_timeout_duration_ms)
 
 	go timer.Timer_deleteRequests(timer_delete, timer_delete_timeout, delete_timeout_duration_ms)

@@ -49,11 +49,11 @@ func setAllCabLights(cabrequests [elevio.N_FLOORS]bool, requests_buttonLamp_outp
 
 func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallRequest_requests chan elevio.ButtonEvent, requests_state_network chan elevio.Elevator,
 	network_hallrequest_requests chan elevio.ButtonEvent, network_statesMap_requests chan map[string]HRAElevState, network_id_requests chan string,
-	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool, requests_deleteHallRequest_network chan elevio.ButtonEvent, requests_buttonLamp_output chan elevio.ButtonEvent,
-	network_deadPeerMap_requests chan map[string][elevio.N_FLOORS]bool) {
+	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool, requests_deleteHallRequest_network chan elevio.ButtonEvent, 
+	requests_buttonLamp_output chan elevio.ButtonEvent, network_peersList_requests chan []string, requests_resendHallrequests_network chan elevio.ButtonEvent) {
 	var id string
 	Initialized_flag := false
-	deadPeerMap := make(map[string][elevio.N_FLOORS]bool)
+	peersList := []string {}
 	/*
 			//HRA_output := make(chan )
 		myState := HRAElevState{
@@ -89,7 +89,41 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 				reassign_requests(input)
 
 		*/
-		case deadPeerMap = <- network_deadPeerMap_requests:
+		case new_peersList := <- network_peersList_requests:
+			println("1. resending buttonevent \n")
+			println("length Newdeadpeermap: %d length deadpeermap: %d\n", len(new_peersList), len(peersList))
+			if len(new_peersList) > len(peersList){
+				for i := 0; i < elevio.N_FLOORS; i++ {
+					for j := 0; j < elevio.N_BUTTONS-1; j++ {
+						if input.HallRequests[i][j]{
+							pseudo_buttonevent:= elevio.ButtonEvent{Floor: i, Button: elevio.ButtonType(j), Toggle: true}
+							println("2. resending buttonevent \n")
+							requests_resendHallrequests_network <- pseudo_buttonevent
+						}
+						
+					}
+				}
+			}
+			peersList = new_peersList
+			
+			/*
+			println("1. resending buttonevent \n")
+			println("length Newdeadpeermap: %d length deadpeermap: %d\n", len(NewdeadPeerMap), len(deadPeerMap))
+			if len(NewdeadPeerMap) < len(deadPeerMap){
+				for i := 0; i < elevio.N_FLOORS; i++ {
+					for j := 0; j < elevio.N_BUTTONS-1; j++ {
+						if input.HallRequests[i][j]{
+							pseudo_buttonevent:= elevio.ButtonEvent{Floor: i, Button: elevio.ButtonType(j), Toggle: true}
+							println("2. resending buttonevent \n")
+							requests_resendHallrequests_network <- pseudo_buttonevent
+						}
+						
+					}
+				}
+			}
+			deadPeerMap  = NewdeadPeerMap
+			*/
+
 			/*
 			if(Initialized_flag){
 				for i := 0; i < len(deadPeerLst); i++ {
@@ -129,10 +163,22 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			fmt.Printf("request assigner because of new hall request\n")
 			if(Initialized_flag){
+
+				temp_input_states := make(map[string]HRAElevState)
 				hallLightsMutex.Lock()
-				for k,_ := range deadPeerMap {
-					delete(input.States, k)
-					
+
+				if len(peersList) > 1 {
+					for i := 0; i < len(peersList); i++ {
+						_, ok := input.States[peersList[i]]
+						if ok{
+							temp_input_states[peersList[i]] = input.States[peersList[i]]
+						}
+						
+					}
+					input.States = temp_input_states
+				}else {
+					temp_input_states[id] = input.States[id]
+					input.States = temp_input_states
 				}
 				hallLightsMutex.Unlock()
 
@@ -183,11 +229,26 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
 			//fmt.Printf("request assigner because of new state\n")
+			temp_input_states := make(map[string]HRAElevState)
 			hallLightsMutex.Lock()
-			for k,_ := range deadPeerMap {
-				delete(input.States, k)
-				
+
+			if len(peersList) > 1 {
+				for i := 0; i < len(peersList); i++ {
+					_, ok := input.States[peersList[i]]
+					if ok{
+						temp_input_states[peersList[i]] = input.States[peersList[i]]
+					}
+					
+				}
+				input.States = temp_input_states
+			}else {
+				temp_input_states[id] = input.States[id]
+				input.States = temp_input_states
 			}
+
+			
+
+
 			hallLightsMutex.Unlock()
 			//fmt.Printf("2. Updated input states: %+v\n", input.States)
 			updatedRequests := reassign_requests(input, id)
