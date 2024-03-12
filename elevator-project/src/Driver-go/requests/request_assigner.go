@@ -106,6 +106,7 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			id = id_sent
 
 		case hallRequest := <-network_hallrequest_requests:
+			//fmt.Printf("Recieved on network_hallrequest_requests:%+v\n", hallRequest)
 
 			flag_detectedUpdate := false
 
@@ -128,10 +129,12 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			fmt.Printf("request assigner because of new hall request\n")
 			if(Initialized_flag){
+				hallLightsMutex.Lock()
 				for k,_ := range deadPeerMap {
 					delete(input.States, k)
 					
 				}
+				hallLightsMutex.Unlock()
 
 				updatedRequests := reassign_requests(input, id)
 				requests_updatedRequests_fsm <- *updatedRequests
@@ -140,27 +143,60 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			//kanskje vi skulle hatt to ulike kanaler eller noe? her sender vi kanskje fort etter hverandre
 
-		case stateMap := <-network_statesMap_requests:
+		case stateMap := <-network_statesMap_requests: 
+			//fmt.Printf("Recieved state in requests\n")
 			if (!Initialized_flag){
 				Initialized_flag = true
 			}
+			/*
+
+			// Create a copy of stateMap
+			stateCopy := make(map[string]HRAElevState)
+			for k, v := range stateMap {
+				stateCopy[k] = v
+			}*/
+			// ...
 			hallLightsMutex.Lock()
+			// Deep-copy of states
+			/*
+			for k, v := range stateMap {
+				input.States[k] = v
+			}*/
 			input.States = stateMap
 			hallLightsMutex.Unlock()
+
+
+
+			/*
+			// Deep-copy of states
+			for k, v := range stateMap {
+				input.States[k] = v
+			}
+			hallLightsMutex.Unlock()
+			*/
+			//fmt.Printf("1. Updated input states: %+v\n", input.States)
+			
+
 
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
-			fmt.Printf("request assigner because of new state\n")
+			//fmt.Printf("request assigner because of new state\n")
+			hallLightsMutex.Lock()
 			for k,_ := range deadPeerMap {
 				delete(input.States, k)
 				
 			}
+			hallLightsMutex.Unlock()
+			//fmt.Printf("2. Updated input states: %+v\n", input.States)
 			updatedRequests := reassign_requests(input, id)
+			//fmt.Printf("3. Updated input states: %+v\n", input.States)
+
 			requests_updatedRequests_fsm <- *updatedRequests
+			//fmt.Printf("4. Updated input states: %+v\n", input.States)
 			
-			// MULIG FUCK-UP, SÅ SJEKK HER VISS DET BLIR FEIL
+			
 		case state := <-fsm_state_requests:
 			requests_state_network <- state
 			/*
@@ -221,6 +257,28 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 }
 
 func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BUTTONS]bool {
+	/*
+	input_temp := HRAInput{
+		HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+		States:       make(map[string]HRAElevState)}
+
+	// Deep copy each field
+	for k, v := range input.HallRequests {
+		for i, val := range v {
+			input_temp.HallRequests[k][i] = val
+		}
+	}
+	for k, v := range input.States {
+		input_temp.States[k] = v
+	}
+
+	// Delete the id-s that are dead, so that they don't get assigned orders when they are dead
+	for k,_ := range deadPeerMap {
+		delete(input_temp.States, k)
+	}
+	*/
+
+	
 	hraExecutable := "hall_request_assigner"
 	hallLightsMutex.Lock()
 	jsonBytes, err := json.Marshal(input)
@@ -244,11 +302,11 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 		fmt.Println("json.Unmarshal error: ", err)
 		return nil
 	}
-
-	fmt.Printf("output: \n")
-	/*for k, v := range *output {
+	
+	fmt.Printf("output orders assigned: \n")
+	for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
-	}*/
+	}
 
 	myRequests := (*output)[id]
 

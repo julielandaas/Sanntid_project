@@ -9,17 +9,16 @@ import (
 	"Sanntid/Driver-go/requests"
 	"Sanntid/Driver-go/timer"
 	"Sanntid/Network-go/network/main_network"
+	//"time"
+
 	//"Sanntid/Restart-go/restart"
 	"flag"
 )
-
 
 // må håndtere å fjerne når en pc suger... typ 80% pakketap
 // må også klare å finne ut når en sjølv suger.. og fjerne seg sjølv fra nettet
 
 // når ny heis kjem på nett, må dei få tilbake cab-calls pg hall-calls
-
-
 
 func main() {
 	//next_start := restart.Main_restart()
@@ -34,17 +33,15 @@ func main() {
 
 	elevio.Init("localhost:"+port, elevio.N_FLOORS)
 
-
-
 	//var d elevio.MotorDirection = elevio.MD_Up
 	//elevio.SetMotorDirection(d)
 
 	//fsm.Fsm_onInitBe floors := <
 	//Config
 	doorOpenDuration_s := 3
-	requests_timeout_duration_ms := 50
+	requests_timeout_duration_ms := 100
 	delete_timeout_duration_ms := 200
-	states_timeout_duration_ms := 50
+	states_timeout_duration_ms := 100
 	//input to fsm channels
 	input_buttons_fsm := make(chan elevio.ButtonEvent, 30)
 	input_floors_fsm := make(chan int)
@@ -89,21 +86,22 @@ func main() {
 	network_id_requests := make(chan string, 10)
 	network_deadPeerMap_requests := make(chan map[string][elevio.N_FLOORS]bool, 10)
 
-	go main_network.Main_network(requests_state_network, input_buttons_network, network_hallrequest_requests, network_statesMap_requests, network_id_requests, 
-		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, timer_delete,timer_delete_timeout, timer_states, timer_states_timeout, id,
+	go main_network.Main_network(requests_state_network, input_buttons_network, network_hallrequest_requests, network_statesMap_requests, network_id_requests,
+		requests_deleteHallRequest_network, timer_requests, timer_requests_timeout, timer_delete, timer_delete_timeout, timer_states, timer_states_timeout, id,
 		network_deadPeerMap_requests)
+	
 	go inputdevice.Inputdevice(input_buttons_network, input_floors_fsm, input_obstr_fsm)
 	go outputdevice.Outputdevice(fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
-
-	go timer.Timer_handler(timer_open_door, timer_open_door_timeout, doorOpenDuration_s)
+	//time.Sleep(500*time.Millisecond)
 	go fsm.Fsm(input_buttons_fsm, input_floors_fsm, input_obstr_fsm, timer_open_door, timer_open_door_timeout,
 		fsm_motorDir_output, requests_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output, fsm_state_requests, fsm_deleteHallRequest_requests,
 		requests_updatedRequests_fsm)
+	go timer.Timer_handler(timer_open_door, timer_open_door_timeout, doorOpenDuration_s)
 	go requests.Request_assigner(fsm_state_requests, fsm_deleteHallRequest_requests, requests_state_network, network_hallrequest_requests,
 		network_statesMap_requests, network_id_requests, requests_updatedRequests_fsm, requests_deleteHallRequest_network, requests_buttonLamp_output, network_deadPeerMap_requests)
 	go timer.Timer_Requests(timer_requests, timer_requests_timeout, requests_timeout_duration_ms)
 
-	go timer.Timer_deleteRequests(timer_delete,timer_delete_timeout, delete_timeout_duration_ms)
+	go timer.Timer_deleteRequests(timer_delete, timer_delete_timeout, delete_timeout_duration_ms)
 	go timer.Timer_states(timer_states, timer_states_timeout, states_timeout_duration_ms)
 
 	for {
