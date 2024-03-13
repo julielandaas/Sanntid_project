@@ -138,3 +138,29 @@ func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_en
 
 	}
 }
+
+func Timer_restartElevator(timer_restartElevator chan Timer_enum, timer_restartElevator_timeout chan bool, restartElevator_timeout_duration_ms int){
+	timer_pointer_restartElevator := time.NewTimer(time.Duration(restartElevator_timeout_duration_ms)*(time.Millisecond))
+	timer_pointer_restartElevator.Stop()
+
+	for{
+		select{
+		case timer_info := <- timer_restartElevator:
+			switch(timer_info){
+			case Timer_stop:
+				timer_pointer_restartElevator.Stop()
+			case Timer_reset:
+			timer_pointer_restartElevator.Reset(time.Duration(restartElevator_timeout_duration_ms)*(time.Millisecond))
+			}
+
+		case timeout := <- timer_pointer_restartElevator.C:
+			fmt.Printf("timeout restart elevator: %+v\n", timeout)
+			timer_restartElevator_timeout <- true
+
+		default:
+			//nothing happens
+		}
+
+	}
+}
+

@@ -51,7 +51,8 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 	network_hallrequest_requests chan elevio.ButtonEvent, network_statesMap_requests chan map[string]HRAElevState, network_id_requests chan string,
 	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool, requests_deleteHallRequest_network chan elevio.ButtonEvent, 
 	requests_buttonLamp_output chan elevio.ButtonEvent, network_peersList_requests chan []string, requests_resendHallrequests_network chan elevio.ButtonEvent) {
-	var id string
+	
+		var id string
 	Initialized_flag := false
 	peersList := []string {}
 	/*
@@ -64,7 +65,8 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 	*/
 	input := HRAInput{
 		HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
-		States:       make(map[string]HRAElevState)}
+		States:       make(map[string]HRAElevState),
+	}
 	/*
 	   "one": myState,
 	   "two": HRAElevState{
@@ -229,13 +231,15 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
 			//fmt.Printf("request assigner because of new state\n")
+			mycabrequests := input.States[id].CabRequests
+
 			temp_input_states := make(map[string]HRAElevState)
 			hallLightsMutex.Lock()
 
 			if len(peersList) > 1 {
 				for i := 0; i < len(peersList); i++ {
 					_, ok := input.States[peersList[i]]
-					if ok{
+					if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
 						temp_input_states[peersList[i]] = input.States[peersList[i]]
 					}
 					
@@ -246,14 +250,17 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 				input.States = temp_input_states
 			}
 
-			
-
-
 			hallLightsMutex.Unlock()
 			//fmt.Printf("2. Updated input states: %+v\n", input.States)
 			updatedRequests := reassign_requests(input, id)
+			fmt.Printf("updated requests: %+v", updatedRequests)
 			//fmt.Printf("3. Updated input states: %+v\n", input.States)
-
+			
+			for i := 0; i < elevio.N_FLOORS; i++ {
+				if mycabrequests[i] {
+					updatedRequests[i][elevio.BT_Cab] = true
+				}
+			}
 			requests_updatedRequests_fsm <- *updatedRequests
 			//fmt.Printf("4. Updated input states: %+v\n", input.States)
 			
@@ -338,6 +345,7 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 		delete(input_temp.States, k)
 	}
 	*/
+	
 
 	
 	hraExecutable := "hall_request_assigner"
@@ -363,11 +371,11 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 		fmt.Println("json.Unmarshal error: ", err)
 		return nil
 	}
-	/*
+	
 	fmt.Printf("output orders assigned: \n")
 	for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
-	}*/
+	}
 
 	myRequests := (*output)[id]
 

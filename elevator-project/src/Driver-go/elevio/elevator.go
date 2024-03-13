@@ -5,6 +5,7 @@ import "time"
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
+const TRAVELTIME_BETWEENFLOORS_MS = 2000
 
 
 type MotorDirection int
@@ -39,7 +40,8 @@ type ElevatorBehaviour int
 const (
 	EB_Idle     ElevatorBehaviour = 1	  
 	EB_DoorOpen                   = -1	  
-	EB_Moving                     = 0   
+	EB_Moving                     = 0
+	EB_Immobile                   = 2
 )
 
 type ClearRequestVariant int
@@ -102,6 +104,8 @@ func Elevio_behaviour_toString(b ElevatorBehaviour) string{
 		return "moving"
 	case EB_DoorOpen:
 		return "doorOpen"
+	case EB_Immobile:
+		return "immobile"
 	default:
 		return "EB_UNDEFINED"
 	}

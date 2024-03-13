@@ -342,7 +342,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 
 		case statesMsg := <-statesRx:
 			
-			fmt.Printf("recieved on statesRx\n")
+			//fmt.Printf("recieved on statesRx\n")
 			statesMsg_recieved_id := statesMsg.Id
 			statesMsg_recieved_iter := statesMsg.Iter
 			statesMsg_recieved_states := states_StringToMap(statesMsg.Message)
@@ -368,8 +368,8 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 			}
 
 
-			fmt.Printf("RetrievedCabrequests flag: %+v\n", RetrievedCabrequests_flag)
-			fmt.Println("statesMsg_recieved_iter:", statesMsg_recieved_iter)
+			//fmt.Printf("RetrievedCabrequests flag: %+v\n", RetrievedCabrequests_flag)
+			//fmt.Println("statesMsg_recieved_iter:", statesMsg_recieved_iter)
 
 
 			if statesMsg_recieved_iter == 200 && !RetrievedCabrequests_flag {
@@ -397,7 +397,7 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 						if !flag { // viss denne er død, så stol på den som blir sendt til deg om han
 							deadPeersMap[k] = statesMsg_recieved_states[k].CabRequests
 							states[k] = statesMsg_recieved_states[k]
-							fmt.Printf("State to dead peer: %+v", states_MapToString(states))
+							//fmt.Printf("State to dead peer: %+v", states_MapToString(states))
 						}
 					}
 
@@ -478,11 +478,11 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 
 					
 					reAlivePeer_CabAgreementLst = append(reAlivePeer_CabAgreementLst, statesMsg_recieved_id)
-					fmt.Printf("realivePeer_CabAgreement: %+v \n", reAlivePeer_CabAgreementLst)
+					//fmt.Printf("realivePeer_CabAgreement: %+v \n", reAlivePeer_CabAgreementLst)
 					
 
-					fmt.Printf("Peer alive, DeadPeers: %+v\n", deadPeersMap)
-					fmt.Printf("Previous Cabrequests: %+v\n", states[statesMsg_recieved_id].CabRequests)
+					//fmt.Printf("Peer alive, DeadPeers: %+v\n", deadPeersMap)
+					//fmt.Printf("Previous Cabrequests: %+v\n", states[statesMsg_recieved_id].CabRequests)
 
 					statesMsg := HelloMsg{id, states_MapToString(states), 0}
 					statesMsg.Iter = 200
@@ -649,8 +649,8 @@ func Main_network(requests_state_network chan elevio.Elevator, input_buttons_net
 				//unconfirmed_hallRequestsLst[hallreq.Floor][hallreq.Button] = false
 
 			}
-			fmt.Printf("unconfirmedhallDeletes[hallreq] = %+v\n", unconfirmed_hallDeletes)
-			fmt.Printf("peerslist = %+v\n", peersList)
+			//fmt.Printf("unconfirmedhallDeletes[hallreq] = %+v\n", unconfirmed_hallDeletes)
+			//fmt.Printf("peerslist = %+v\n", peersList)
 			if len(unconfirmed_hallDeletes[hallreq]) == len(peersList) {
 				//fmt.Printf("everyone has recieved the delete")
 				//network_hallrequest_requests <- hallreq
