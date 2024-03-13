@@ -48,6 +48,7 @@ func Fsm(port string, id string, input_buttons_fsm chan elevio.ButtonEvent, inpu
 				fsm_onRequestButtonPress(buttonEvent.Floor, buttonEvent.Button, timer_open_door, timer_open_door_timeout,
 					fsm_motorDir_output, fsm_buttonLamp_output, fsm_floorIndicator_output, fsm_doorLamp_output)
 		*/
+		
 		case timer_door := <-timer_open_door_timeout:
 			if !obstructed_flag{
 				timer_detectImmobility <- timer.Timer_stop

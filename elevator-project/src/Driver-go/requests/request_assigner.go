@@ -107,6 +107,39 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 				}
 			}
 			peersList = new_peersList
+
+
+			mycabrequests := input.States[id].CabRequests
+
+			temp_input_states := make(map[string]HRAElevState)
+			hallLightsMutex.Lock()
+
+			if len(peersList) > 1 {
+				for i := 0; i < len(peersList); i++ {
+					_, ok := input.States[peersList[i]]
+					if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
+						temp_input_states[peersList[i]] = input.States[peersList[i]]
+					}
+					
+				}
+				input.States = temp_input_states
+			}else {
+				temp_input_states[id] = input.States[id]
+				input.States = temp_input_states
+			}
+
+			hallLightsMutex.Unlock()
+			//fmt.Printf("2. Updated input states: %+v\n", input.States)
+			updatedRequests := reassign_requests(input, id)
+			fmt.Printf("updated requests: %+v", updatedRequests)
+			//fmt.Printf("3. Updated input states: %+v\n", input.States)
+			
+			for i := 0; i < elevio.N_FLOORS; i++ {
+				if mycabrequests[i] {
+					updatedRequests[i][elevio.BT_Cab] = true
+				}
+			}
+			requests_updatedRequests_fsm <- *updatedRequests
 			
 			/*
 			println("1. resending buttonevent \n")
@@ -163,6 +196,8 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
+			mycabrequests := input.States[id].CabRequests
+
 			fmt.Printf("request assigner because of new hall request\n")
 			if(Initialized_flag){
 
@@ -185,6 +220,13 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 				hallLightsMutex.Unlock()
 
 				updatedRequests := reassign_requests(input, id)
+
+				for i := 0; i < elevio.N_FLOORS; i++ {
+					if mycabrequests[i] {
+						updatedRequests[i][elevio.BT_Cab] = true
+					}
+				}
+
 				requests_updatedRequests_fsm <- *updatedRequests
 			}
 			}
