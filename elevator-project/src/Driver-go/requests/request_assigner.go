@@ -363,11 +363,11 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 		fmt.Println("json.Unmarshal error: ", err)
 		return nil
 	}
-	
+	/*
 	fmt.Printf("output orders assigned: \n")
 	for k, v := range *output {
 		fmt.Printf("%6v :  %+v\n", k, v)
-	}
+	}*/
 
 	myRequests := (*output)[id]
 
