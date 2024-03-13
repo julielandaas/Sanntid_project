@@ -25,6 +25,7 @@ func Fsm(port string, id string, input_buttons_fsm chan elevio.ButtonEvent, inpu
 	timer_detectImmobility chan timer.Timer_enum, timer_detectImmobility_timeout chan bool) {
 	
 	obstructed_flag := false
+	var lastKnownBehaviour elevio.ElevatorBehaviour 
 
 	// Initialize
 	clearAllLights(fsm_buttonLamp_output, fsm_doorLamp_output)
@@ -88,7 +89,8 @@ func Fsm(port string, id string, input_buttons_fsm chan elevio.ButtonEvent, inpu
 			fmt.Printf("elev.beh: %+v\n obs.flag: %+v:", elevator.Behaviour, obstructed_flag)
 			if elevator.Behaviour == elevio.EB_Immobile && !obstructed_flag {
 				fmt.Printf("2. in input_floor_fsm\n")
-				elevator.Behaviour = elevio.EB_Idle
+			
+				elevator.Behaviour = lastKnownBehaviour
 
 				fsm_state_requests <- elevator
 			}
@@ -144,6 +146,7 @@ func Fsm(port string, id string, input_buttons_fsm chan elevio.ButtonEvent, inpu
 		case <-timer_detectImmobility_timeout:
 			
 			if elevator.Behaviour == elevio.EB_Moving{
+				lastKnownBehaviour = elevator.Behaviour
 				elevator.Behaviour = elevio.EB_Immobile
 
 				fsm_state_requests <- elevator
@@ -159,18 +162,21 @@ func Fsm(port string, id string, input_buttons_fsm chan elevio.ButtonEvent, inpu
 			}
 
 			if elevator.Behaviour == elevio.EB_Idle && !noRequests_flag{
+				lastKnownBehaviour = elevator.Behaviour
 				elevator.Behaviour = elevio.EB_Immobile
 
 				fsm_state_requests <- elevator
 			}
 
 			if elevator.Behaviour == elevio.EB_DoorOpen && obstructed_flag{
+				lastKnownBehaviour = elevator.Behaviour
 				elevator.Behaviour = elevio.EB_Immobile
 
 				fsm_state_requests <- elevator
 			}
 
-			
+			//timer_detectImmobility <- timer.Timer_stop
+			//timer_detectImmobility <- timer.Timer_reset
 			//timer_restartElevator <- timer.Timer_stop
 			//timer_restartElevator <- timer.Timer_reset
 		/*

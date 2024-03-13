@@ -108,38 +108,48 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			}
 			peersList = new_peersList
 
+			fmt.Println("length of input states: ", len(input.States))
 
-			mycabrequests := input.States[id].CabRequests
+			if len(input.States) > 0 { 
+				mycabrequests := input.States[id].CabRequests
 
-			temp_input_states := make(map[string]HRAElevState)
-			hallLightsMutex.Lock()
+				temp_input := HRAInput{
+					HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+					States:       make(map[string]HRAElevState),
+				}
+				temp_input.HallRequests = input.HallRequests
 
-			if len(peersList) > 1 {
-				for i := 0; i < len(peersList); i++ {
-					_, ok := input.States[peersList[i]]
-					if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
-						temp_input_states[peersList[i]] = input.States[peersList[i]]
+
+				hallLightsMutex.Lock()
+
+				if len(peersList) > 1 {
+					for i := 0; i < len(peersList); i++ {
+						_, ok := input.States[peersList[i]]
+						if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
+							temp_input.States[peersList[i]] = input.States[peersList[i]]
+						}
+						
 					}
 					
+				}else {
+					temp_input.States[id] = input.States[id]
+					
 				}
-				input.States = temp_input_states
-			}else {
-				temp_input_states[id] = input.States[id]
-				input.States = temp_input_states
-			}
 
-			hallLightsMutex.Unlock()
-			//fmt.Printf("2. Updated input states: %+v\n", input.States)
-			updatedRequests := reassign_requests(input, id)
-			fmt.Printf("updated requests: %+v", updatedRequests)
-			//fmt.Printf("3. Updated input states: %+v\n", input.States)
-			
-			for i := 0; i < elevio.N_FLOORS; i++ {
-				if mycabrequests[i] {
-					updatedRequests[i][elevio.BT_Cab] = true
+				hallLightsMutex.Unlock()
+				//fmt.Printf("2. Updated input states: %+v\n", input.States)
+				updatedRequests := reassign_requests(temp_input, id)
+				//fmt.Printf("updated requests: %+v", updatedRequests)
+				//fmt.Printf("3. Updated input states: %+v\n", input.States)
+				
+				for i := 0; i < elevio.N_FLOORS; i++ {
+					if mycabrequests[i] {
+						updatedRequests[i][elevio.BT_Cab] = true
+					}
 				}
+				fmt.Printf("1. updated requests: %+v", updatedRequests)
+				requests_updatedRequests_fsm <- *updatedRequests
 			}
-			requests_updatedRequests_fsm <- *updatedRequests
 			
 			/*
 			println("1. resending buttonevent \n")
@@ -194,41 +204,46 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 
 			if flag_detectedUpdate{
 
-			setAllHallLights(input.HallRequests, requests_buttonLamp_output)
+				setAllHallLights(input.HallRequests, requests_buttonLamp_output)
 
-			mycabrequests := input.States[id].CabRequests
+				if len(input.States) > 0{
+					mycabrequests := input.States[id].CabRequests
+					fmt.Printf("my Cab request %+v", mycabrequests)
 
-			fmt.Printf("request assigner because of new hall request\n")
-			if(Initialized_flag){
-
-				temp_input_states := make(map[string]HRAElevState)
-				hallLightsMutex.Lock()
-
-				if len(peersList) > 1 {
-					for i := 0; i < len(peersList); i++ {
-						_, ok := input.States[peersList[i]]
-						if ok{
-							temp_input_states[peersList[i]] = input.States[peersList[i]]
+					fmt.Printf("request assigner because of new hall request\n")
+					if(Initialized_flag){
+						temp_input := HRAInput{
+							HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+							States:       make(map[string]HRAElevState),
 						}
-						
+						temp_input.HallRequests = input.HallRequests
+	
+						hallLightsMutex.Lock()
+
+						if len(peersList) > 1 {
+							for i := 0; i < len(peersList); i++ {
+								_, ok := input.States[peersList[i]]
+								if ok && ((input.States[peersList[i]].Behaviour != "immobile")){
+									temp_input.States[peersList[i]] = input.States[peersList[i]]
+								}
+								
+							}
+						}else {
+							temp_input.States[id] = input.States[id]
+						}
+						hallLightsMutex.Unlock()
+
+						updatedRequests := reassign_requests(temp_input, id)
+
+						for i := 0; i < elevio.N_FLOORS; i++ {
+							if mycabrequests[i] {
+								updatedRequests[i][elevio.BT_Cab] = true
+							}
+						}
+						fmt.Printf("2. updated requests: %+v", updatedRequests)
+						requests_updatedRequests_fsm <- *updatedRequests
 					}
-					input.States = temp_input_states
-				}else {
-					temp_input_states[id] = input.States[id]
-					input.States = temp_input_states
 				}
-				hallLightsMutex.Unlock()
-
-				updatedRequests := reassign_requests(input, id)
-
-				for i := 0; i < elevio.N_FLOORS; i++ {
-					if mycabrequests[i] {
-						updatedRequests[i][elevio.BT_Cab] = true
-					}
-				}
-
-				requests_updatedRequests_fsm <- *updatedRequests
-			}
 			}
 
 			//kanskje vi skulle hatt to ulike kanaler eller noe? her sender vi kanskje fort etter hverandre
@@ -273,38 +288,49 @@ func Request_assigner(fsm_state_requests chan elevio.Elevator, fsm_deleteHallReq
 			setAllCabLights(input.States[id].CabRequests, requests_buttonLamp_output)
 
 			//fmt.Printf("request assigner because of new state\n")
-			mycabrequests := input.States[id].CabRequests
+			if len(input.States) > 0 {
+				mycabrequests := input.States[id].CabRequests
 
-			temp_input_states := make(map[string]HRAElevState)
-			hallLightsMutex.Lock()
+				temp_input := HRAInput{
+					HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
+					States:       make(map[string]HRAElevState),
+				}
+				temp_input.HallRequests = input.HallRequests
 
-			if len(peersList) > 1 {
-				for i := 0; i < len(peersList); i++ {
-					_, ok := input.States[peersList[i]]
-					if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
-						temp_input_states[peersList[i]] = input.States[peersList[i]]
+				
+				hallLightsMutex.Lock()
+
+				if len(peersList) > 1 {
+					for i := 0; i < len(peersList); i++ {
+						_, ok := input.States[peersList[i]]
+						if ok && ((input.States[peersList[i]].Behaviour != "immobile")) {
+							temp_input.States[peersList[i]] = input.States[peersList[i]]
+						}
+						
 					}
 					
+				}else {
+					temp_input.States[id] = input.States[id]
+					
 				}
-				input.States = temp_input_states
-			}else {
-				temp_input_states[id] = input.States[id]
-				input.States = temp_input_states
-			}
 
-			hallLightsMutex.Unlock()
-			//fmt.Printf("2. Updated input states: %+v\n", input.States)
-			updatedRequests := reassign_requests(input, id)
-			fmt.Printf("updated requests: %+v", updatedRequests)
-			//fmt.Printf("3. Updated input states: %+v\n", input.States)
-			
-			for i := 0; i < elevio.N_FLOORS; i++ {
-				if mycabrequests[i] {
-					updatedRequests[i][elevio.BT_Cab] = true
+				hallLightsMutex.Unlock()
+				//fmt.Printf("2. Updated input states: %+v\n", input.States)
+				updatedRequests := reassign_requests(temp_input, id)
+				//fmt.Printf("3. updated requests: %+v", updatedRequests)
+				//fmt.Printf("3. Updated input states: %+v\n", input.States)
+				
+				for i := 0; i < elevio.N_FLOORS; i++ {
+					if mycabrequests[i] {
+						updatedRequests[i][elevio.BT_Cab] = true
+					}
 				}
+				fmt.Printf("4. updated requests: %+v", updatedRequests)
+				requests_updatedRequests_fsm <- *updatedRequests
+				//fmt.Printf("4. Updated input states: %+v\n", input.States)
+
 			}
-			requests_updatedRequests_fsm <- *updatedRequests
-			//fmt.Printf("4. Updated input states: %+v\n", input.States)
+			
 			
 			
 		case state := <-fsm_state_requests:
