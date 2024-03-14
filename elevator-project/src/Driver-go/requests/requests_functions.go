@@ -5,9 +5,10 @@ import (
     "encoding/json"
 	"fmt"
 	"os/exec"
+    "sync"
 )
 
-
+var temp_inputStates_mutex sync.Mutex
 type HRAElevState struct {
 	Behaviour   string                `json:"behaviour"`
 	Floor       int                   `json:"floor"`
@@ -214,9 +215,9 @@ func Requests_clearAtCurrentFloor(e elevio.Elevator) elevio.Elevator {
 
 func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BUTTONS]bool {
 	hraExecutable := "hall_request_assigner"
-	inpuStates_mutex.Lock()
+	temp_inputStates_mutex.Lock()
 	jsonBytes, err := json.Marshal(input)
-	inpuStates_mutex.Unlock()
+	temp_inputStates_mutex.Unlock()
 
 	if err != nil {
 		fmt.Println("json.Marshal error: ", err)
@@ -257,18 +258,22 @@ func get_updatedRequests(input HRAInput, id string, peersList []string) [elevio.
 	}
 	temp_input.HallRequests = input.HallRequests
 
-	inpuStates_mutex.Lock()
+	inputStates_mutex.Lock()
 	if len(peersList) > 1 {
 		for i := 0; i < len(peersList); i++ {
 			_, ok := input.States[peersList[i]]
 			if ok && (input.States[peersList[i]].Behaviour != "immobile") {
+                temp_inputStates_mutex.Lock()
 				temp_input.States[peersList[i]] = input.States[peersList[i]]
+                temp_inputStates_mutex.Unlock()
 			}
 		}
 	} else {
+        temp_inputStates_mutex.Lock()
 		temp_input.States[id] = input.States[id]
+        temp_inputStates_mutex.Unlock()
 	}
-	inpuStates_mutex.Unlock()
+	inputStates_mutex.Unlock()
 
 	updatedRequests := reassign_requests(temp_input, id)
 	for i := 0; i < elevio.N_FLOORS; i++ {

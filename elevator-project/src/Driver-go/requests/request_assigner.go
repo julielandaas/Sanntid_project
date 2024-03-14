@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-var inpuStates_mutex sync.Mutex
+var inputStates_mutex sync.Mutex
 
 func Request_assigner(id string, network_hallrequest_requests chan elevio.ButtonEvent, network_statesMap_requests chan map[string]HRAElevState, 
 	requests_updatedRequests_fsm chan [elevio.N_FLOORS][elevio.N_BUTTONS]bool,
@@ -63,9 +63,9 @@ func Request_assigner(id string, network_hallrequest_requests chan elevio.Button
 			}
 
 		case stateMap := <-network_statesMap_requests:
-			inpuStates_mutex.Lock()
+			inputStates_mutex.Lock()
 			input.States = stateMap
-			inpuStates_mutex.Unlock()
+			inputStates_mutex.Unlock()
 
 			requests_hallRequests_output <- input.HallRequests
 			requests_myState_output <- input.States[id]
