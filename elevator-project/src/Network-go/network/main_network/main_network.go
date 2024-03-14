@@ -218,7 +218,13 @@ func Main_network(id string, fsm_state_network chan elevio.Elevator, input_butto
 						
 						}else {
 							statesMap[recievedFrom_Id] = recieved_StatesMap[recievedFrom_Id]
-
+							statesMutex.Lock()
+							stateCopy := make(map[string]requests.HRAElevState)
+							for k, v := range statesMap {
+								stateCopy[k] = v
+							}
+							statesMutex.Unlock()
+							network_statesMap_requests <- stateCopy
 							statesMsg := Message{id, statesMap_MapToString(statesMap), Normal_Ack}
 							statesTx <- statesMsg
 						}
