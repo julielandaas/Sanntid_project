@@ -1,7 +1,5 @@
 package elevio
 
-import "time"
-
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
@@ -10,31 +8,30 @@ const TRAVELTIME_BETWEENFLOORS_MS = 2000
 
 type MotorDirection int
 const (
-	MD_Up   MotorDirection = 1
-	MD_Down                = -1
-	MD_Stop                = 0
+	MD_Up   MotorDirection  = 1
+	MD_Down                 = -1
+	MD_Stop                 = 0
 )
 
 type ButtonType int
 const (
-	BT_HallUp   ButtonType = 0
+	BT_HallUp   ButtonType  = 0
 	BT_HallDown             = 1
 	BT_Cab                  = 2
 )
 
 type ButtonEvent struct {
-	Floor  int
-	Button ButtonType
-	Toggle bool //endre denne til et bedre navn
+	Floor   int
+	Button  ButtonType
+	Value   bool
 }
 
 type Dirn int
 const (
-	D_Down Dirn = -1
+	D_Down     Dirn  = -1
 	D_Stop           = 0
 	D_Up             = 1
 )
-
 
 type ElevatorBehaviour int
 const (
@@ -44,45 +41,36 @@ const (
 	EB_Immobile                   = 2
 )
 
+// Skal vi ta vekk dinna?
 type ClearRequestVariant int
 const (
 	CV_All     ClearRequestVariant = 0
 	CV_InDirn                      = 1
 )
 
-type Config struct {
-	ClearRequestVariant ClearRequestVariant
-	DoorOpenDuration_s  time.Duration
-}
-
 type Elevator struct {
 	Behaviour    ElevatorBehaviour          `json:"behaviour"`
 	Floor        int                        `json:"floor"`
 	Dirn         Dirn                       `json:"direction"`
 	Requests     [N_FLOORS][N_BUTTONS]bool  `json:"Requests"`
-	Config       Config
+	ClearRequestVariant       ClearRequestVariant
 	
 }
 
 
-func Elevator_uninitialized() Elevator {
+func Elevator_initialize() Elevator {
 	currentFloor := GetFloor()
 	
 	Elevatorstate := Elevator{
 		Behaviour: EB_Idle,
 		Floor: currentFloor,
 		Dirn: D_Stop,
-		Config: Config{
-			ClearRequestVariant: CV_InDirn,
-			DoorOpenDuration_s: 3.0,
-			},
+		ClearRequestVariant: CV_InDirn,
 		}
 	return Elevatorstate
 }
 
 
-
-//fmt.Print("Ferdig")
 func Elevio_dirn_toString(d Dirn) string{
 	switch d {
 	case D_Up:
@@ -111,17 +99,4 @@ func Elevio_behaviour_toString(b ElevatorBehaviour) string{
 	}
 }
 
-
-func elevio_button_toString(b ButtonType) string{
-	switch b {
-	case BT_HallUp:
-		return "hallUp"
-	case BT_HallDown:
-		return "hallDown"
-	case BT_Cab:
-		return "cab"
-	default:
-		return "BT_UNDEFINED"
-	}
-}
 

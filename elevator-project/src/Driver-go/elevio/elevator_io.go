@@ -1,35 +1,47 @@
 package elevio
 
-import "time"
-import "sync"
-import "net"
-import "fmt"
+import (
+	"Sanntid/Network-go/network/localip"
+	"time"
+	"sync"
+	"net"
+	"fmt"
+	"os"
+)
 
 
+const POLLRATE = 20 * time.Millisecond
 
-const _pollRate = 20 * time.Millisecond
-
-var _initialized    bool = false
-var _numFloors      int = 4
-var _mtx            sync.Mutex
-var _conn           net.Conn
+var initialized    bool = false
+var numFloors      int = N_FLOORS
+var mtx            sync.Mutex
+var conn           net.Conn
 
 
-func Init(addr string, numFloors int) {
-	if _initialized {
+func Init(addr string, id string) string {
+	if initialized {
 		fmt.Println("Driver already initialized!")
-		return
-	}
-	_numFloors = numFloors
-	_mtx = sync.Mutex{}
-	var err error
-	_conn, err = net.Dial("tcp", addr)
-	if err != nil {
-		panic(err.Error())
-	}
-	_initialized = true
-}
+		return id
+	} else {
+		mtx = sync.Mutex{}
+		var err error
+		conn, err = net.Dial("tcp", addr)
+		if err != nil {
+			panic(err.Error())
+		}
+		initialized = true
 
+		if id == "" {
+			localIP, err := localip.LocalIP()
+			if err != nil {
+				fmt.Println(err)
+				localIP = "DISCONNECTED"
+			}
+			id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+		}
+		return id
+	}
+}
 
 
 func SetMotorDirection(dir MotorDirection) {
@@ -53,16 +65,15 @@ func SetStopLamp(value bool) {
 }
 
 
-
-func PollButtons(receiver chan<- ButtonEvent) {
-	prev := make([][3]bool, _numFloors)
+func PollButtons(drv_buttonEvent_input chan<- ButtonEvent) {
+	prev := make([][3]bool, numFloors)
 	for {
-		time.Sleep(_pollRate)
-		for f := 0; f < _numFloors; f++ {
+		time.Sleep(POLLRATE)
+		for f := 0; f < numFloors; f++ {
 			for b := ButtonType(0); b < 3; b++ {
 				v := GetButton(b, f)
 				if v != prev[f][b] && v != false {
-					receiver <- ButtonEvent{f, ButtonType(b), true}
+					drv_buttonEvent_input <- ButtonEvent{f, ButtonType(b), true}
 				}
 				prev[f][b] = v
 			}
@@ -70,44 +81,41 @@ func PollButtons(receiver chan<- ButtonEvent) {
 	}
 }
 
-func PollFloorSensor(receiver chan<- int) {
+func PollFloorSensor(drv_floor_input chan<- int) {
 	prev := -1
 	for {
-		time.Sleep(_pollRate)
+		time.Sleep(POLLRATE)
 		v := GetFloor()
 		if v != prev && v != -1 {
-			receiver <- v
+			drv_floor_input <- v
 		}
 		prev = v
 	}
 }
 
-func PollStopButton(receiver chan<- bool) {
+func PollStopButton(drv_stop_input chan<- bool) {
 	prev := false
 	for {
-		time.Sleep(_pollRate)
+		time.Sleep(POLLRATE)
 		v := GetStop()
 		if v != prev {
-			receiver <- v
+			drv_stop_input <- v
 		}
 		prev = v
 	}
 }
 
-func PollObstructionSwitch(receiver chan<- bool) {
+func PollObstructionSwitch(drv_obstruction_input chan<- bool) {
 	prev := false
 	for {
-		time.Sleep(_pollRate)
+		time.Sleep(POLLRATE)
 		v := GetObstruction()
 		if v != prev {
-			receiver <- v
+			drv_obstruction_input <- v
 		}
 		prev = v
 	}
 }
-
-
-
 
 func GetButton(button ButtonType, floor int) bool {
 	a := read([4]byte{6, byte(button), byte(floor), 0})
@@ -134,28 +142,25 @@ func GetObstruction() bool {
 }
 
 
-
-
-
 func read(in [4]byte) [4]byte {
-	_mtx.Lock()
-	defer _mtx.Unlock()
+	mtx.Lock()
+	defer mtx.Unlock()
 	
-	_, err := _conn.Write(in[:])
+	_, err := conn.Write(in[:])
 	if err != nil { panic("Lost connection to Elevator Server") }
 	
 	var out [4]byte
-	_, err = _conn.Read(out[:])
+	_, err = conn.Read(out[:])
 	if err != nil { panic("Lost connection to Elevator Server") }
 	
 	return out
 }
 
 func write(in [4]byte) {
-	_mtx.Lock()
-	defer _mtx.Unlock()
+	mtx.Lock()
+	defer mtx.Unlock()
 	
-	_, err := _conn.Write(in[:])
+	_, err := conn.Write(in[:])
 	if err != nil { panic("Lost connection to Elevator Server") }
 }
 

@@ -1,9 +1,17 @@
 package timer
 
-import(
-	"time"
+import (
+	"Sanntid/Driver-go/elevio"
 	"fmt"
+	"time"
 )
+
+const OPENDOOR_TIMEOUT_DURATION_S = 3
+const REQUESTS_TIMEOUT_DURATION_MS = 50
+const DELETE_TIMEOUT_DURATION_MS = 60
+const STATES_TIMEOUT_DURATION_MS = 50
+const REALIVE_PEER_CABAGREEMENT_TIMEOUT_MS = 300
+const DETECT_IMMOBILITY_TIMEOUT_DURATION_MS = elevio.TRAVELTIME_BETWEENFLOORS_MS*2
 
 
 type Timer_enum int
@@ -13,34 +21,32 @@ const (
 )
 
 
-//enndre navnet på denne til noe med open door
-func Timer_handler(timer_open_door chan Timer_enum,timer_open_door_timeout chan bool, doorOpenDuration_s int){
-	timer_pointer_door := time.NewTimer(time.Duration(doorOpenDuration_s)*(time.Second))
-	timer_pointer_door.Stop()
+func Timer_openDoor(timer_openDoor chan Timer_enum, timer_openDoor_timeout chan bool){
+	timer_pointerDoor := time.NewTimer(time.Duration(OPENDOOR_TIMEOUT_DURATION_S)*(time.Second))
+	timer_pointerDoor.Stop()
 
 	for{
 		select{
-		case timer_info := <- timer_open_door:
+		case timer_info := <- timer_openDoor:
 			switch(timer_info){
 			case Timer_stop:
-				timer_pointer_door.Stop()
+				timer_pointerDoor.Stop()
 			case Timer_reset:
-			timer_pointer_door.Reset(time.Duration(doorOpenDuration_s)*(time.Second))
+				timer_pointerDoor.Reset(time.Duration(OPENDOOR_TIMEOUT_DURATION_S)*(time.Second))
 			}
 
-		case timeout := <- timer_pointer_door.C:
-			fmt.Printf("timeout door: %+v\n", timeout)
-			timer_open_door_timeout <- true
+		case timeout_door := <- timer_pointerDoor.C:
+			fmt.Printf("Timeout door: %+v\n", timeout_door)
+			timer_openDoor_timeout <- true
 
 		default:
-			//nothing happens
 		}
 
 	}
 }
 
-func Timer_Requests(timer_requests chan Timer_enum,timer_requests_timeout chan bool, requests_timeout_duration_ms int){
-	timer_pointer_requests := time.NewTimer(time.Duration(requests_timeout_duration_ms)*(time.Millisecond))
+func Timer_requests(timer_requests chan Timer_enum,timer_requests_timeout chan bool){
+	timer_pointer_requests := time.NewTimer(time.Duration(REQUESTS_TIMEOUT_DURATION_MS)*(time.Millisecond))
 	timer_pointer_requests.Stop()
 
 	for{
@@ -50,7 +56,7 @@ func Timer_Requests(timer_requests chan Timer_enum,timer_requests_timeout chan b
 			case Timer_stop:
 				timer_pointer_requests.Stop()
 			case Timer_reset:
-			timer_pointer_requests.Reset(time.Duration(requests_timeout_duration_ms)*(time.Millisecond))
+				timer_pointer_requests.Reset(time.Duration(REQUESTS_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
 		case timeout := <- timer_pointer_requests.C:
@@ -64,8 +70,8 @@ func Timer_Requests(timer_requests chan Timer_enum,timer_requests_timeout chan b
 	}
 }
 
-func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan bool, delete_timeout_duration_ms int){
-	timer_pointer_delete := time.NewTimer(time.Duration(delete_timeout_duration_ms)*(time.Millisecond))
+func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan bool){
+	timer_pointer_delete := time.NewTimer(time.Duration(DELETE_TIMEOUT_DURATION_MS)*(time.Millisecond))
 	timer_pointer_delete.Stop()
 
 	for{
@@ -75,7 +81,7 @@ func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan
 			case Timer_stop:
 				timer_pointer_delete.Stop()
 			case Timer_reset:
-			timer_pointer_delete.Reset(time.Duration(delete_timeout_duration_ms)*(time.Millisecond))
+			timer_pointer_delete.Reset(time.Duration(DELETE_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
 		case timeout := <- timer_pointer_delete.C:
@@ -89,8 +95,8 @@ func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan
 	}
 }
 
-func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool, states_timeout_duration_ms int){
-	timer_pointer_states := time.NewTimer(time.Duration(states_timeout_duration_ms)*(time.Millisecond))
+func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool){
+	timer_pointer_states := time.NewTimer(time.Duration(STATES_TIMEOUT_DURATION_MS)*(time.Millisecond))
 	timer_pointer_states.Stop()
 
 	for{
@@ -100,7 +106,7 @@ func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool, s
 			case Timer_stop:
 				timer_pointer_states.Stop()
 			case Timer_reset:
-			timer_pointer_states.Reset(time.Duration(states_timeout_duration_ms)*(time.Millisecond))
+			timer_pointer_states.Reset(time.Duration(STATES_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
 		case timeout := <- timer_pointer_states.C:
@@ -114,8 +120,8 @@ func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool, s
 	}
 }
 
-func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_enum, timer_reAlivePeer_CabAgreement_timeout chan bool, reAlivePeer_CabAgreement_timeout_duration_ms int){
-	timer_pointer_reAlivePeer_CabAgreement := time.NewTimer(time.Duration(reAlivePeer_CabAgreement_timeout_duration_ms)*(time.Millisecond))
+func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_enum, timer_reAlivePeer_CabAgreement_timeout chan bool){
+	timer_pointer_reAlivePeer_CabAgreement := time.NewTimer(time.Duration(REALIVE_PEER_CABAGREEMENT_TIMEOUT_MS)*(time.Millisecond))
 	timer_pointer_reAlivePeer_CabAgreement.Stop()
 
 	for{
@@ -125,7 +131,7 @@ func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_en
 			case Timer_stop:
 				timer_pointer_reAlivePeer_CabAgreement.Stop()
 			case Timer_reset:
-			timer_pointer_reAlivePeer_CabAgreement.Reset(time.Duration(reAlivePeer_CabAgreement_timeout_duration_ms)*(time.Millisecond))
+			timer_pointer_reAlivePeer_CabAgreement.Reset(time.Duration(REALIVE_PEER_CABAGREEMENT_TIMEOUT_MS)*(time.Millisecond))
 			}
 
 		case timeout := <- timer_pointer_reAlivePeer_CabAgreement.C:
@@ -139,23 +145,23 @@ func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_en
 	}
 }
 
-func Timer_restartElevator(timer_restartElevator chan Timer_enum, timer_restartElevator_timeout chan bool, restartElevator_timeout_duration_ms int){
-	timer_pointer_restartElevator := time.NewTimer(time.Duration(restartElevator_timeout_duration_ms)*(time.Millisecond))
-	timer_pointer_restartElevator.Stop()
+func Timer_detectImmobility(timer_detectImmobility chan Timer_enum, timer_detectImmobility_timeout chan bool){
+	timer_pointer_detectImmobility := time.NewTimer(time.Duration(DETECT_IMMOBILITY_TIMEOUT_DURATION_MS)*(time.Millisecond))
+	timer_pointer_detectImmobility.Stop()
 
 	for{
 		select{
-		case timer_info := <- timer_restartElevator:
+		case timer_info := <- timer_detectImmobility:
 			switch(timer_info){
 			case Timer_stop:
-				timer_pointer_restartElevator.Stop()
+				timer_pointer_detectImmobility.Stop()
 			case Timer_reset:
-			timer_pointer_restartElevator.Reset(time.Duration(restartElevator_timeout_duration_ms)*(time.Millisecond))
+			timer_pointer_detectImmobility.Reset(time.Duration(DETECT_IMMOBILITY_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_restartElevator.C:
-			fmt.Printf("timeout restart elevator: %+v\n", timeout)
-			timer_restartElevator_timeout <- true
+		case timeout := <- timer_pointer_detectImmobility.C:
+			fmt.Printf("timeout detectImmobility: %+v\n", timeout)
+			timer_detectImmobility_timeout <- true
 
 		default:
 			//nothing happens
