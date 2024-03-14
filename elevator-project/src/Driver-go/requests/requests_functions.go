@@ -28,9 +28,9 @@ type DirnBehaviourPair struct {
 }
 
 func Requests_above(e elevio.Elevator) bool {
-    for f := e.Floor + 1; f < elevio.N_FLOORS; f++ {
+    for floor := e.Floor + 1; floor < elevio.N_FLOORS; floor++ {
         for btn := 0; btn < elevio.N_BUTTONS; btn++ {
-            if e.Requests[f][btn] {
+            if e.Requests[floor][btn] {
                 return true
             }
         }
@@ -39,9 +39,9 @@ func Requests_above(e elevio.Elevator) bool {
 }
 
 func Requests_below(e elevio.Elevator) bool {
-    for f := 0; f < e.Floor; f++ {
+    for floor := 0; floor < e.Floor; floor++ {
         for btn := 0; btn < elevio.N_BUTTONS; btn++ {
-            if e.Requests[f][btn] {
+            if e.Requests[floor][btn] {
                 return true
             }
         }
@@ -215,6 +215,7 @@ func Requests_clearAtCurrentFloor(e elevio.Elevator) elevio.Elevator {
 
 func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BUTTONS]bool {
 	hraExecutable := "hall_request_assigner"
+
 	temp_inputStates_mutex.Lock()
 	jsonBytes, err := json.Marshal(input)
 	temp_inputStates_mutex.Unlock()
@@ -237,21 +238,16 @@ func reassign_requests(input HRAInput, id string) *[elevio.N_FLOORS][elevio.N_BU
 		fmt.Println("json.Unmarshal error: ", err)
 		return nil
 	}
-
-	fmt.Printf("output orders assigned: \n")
-	for k, v := range *output {
-		fmt.Printf("%6v :  %+v\n", k, v)
-	}
-
+    
 	myRequests := (*output)[id]
 
 	return &myRequests
-
 }
 
 
 func get_updatedRequests(input HRAInput, id string, peersList []string) [elevio.N_FLOORS][elevio.N_BUTTONS]bool {
 	mycabrequests := input.States[id].CabRequests
+
 	temp_input := HRAInput{
 		HallRequests: [elevio.N_FLOORS][2]bool{{false, false}, {false, false}, {false, false}, {false, false}},
 		States:       make(map[string]HRAElevState),
@@ -276,9 +272,9 @@ func get_updatedRequests(input HRAInput, id string, peersList []string) [elevio.
 	inputStates_mutex.Unlock()
 
 	updatedRequests := reassign_requests(temp_input, id)
-	for i := 0; i < elevio.N_FLOORS; i++ {
-		if mycabrequests[i] {
-			updatedRequests[i][elevio.BT_Cab] = true
+	for floor := 0; floor < elevio.N_FLOORS; floor++ {
+		if mycabrequests[floor] {
+			updatedRequests[floor][elevio.BT_Cab] = true
 		}
 	}
 	return *updatedRequests

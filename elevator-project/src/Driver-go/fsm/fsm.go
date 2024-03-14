@@ -115,9 +115,9 @@ func Fsm(port string, id string, input_floors_fsm chan int, input_obstr_fsm chan
 			}
 
 			noRequests_flag := true
-			for i := 0; i < elevio.N_FLOORS; i++ {
-				for j := 0; j < elevio.N_BUTTONS; j++ {
-					if elevator.Requests[i][j] == true{
+			for floor := 0; floor < elevio.N_FLOORS; floor++ {
+				for btn := 0; btn < elevio.N_BUTTONS; btn++ {
+					if elevator.Requests[floor][btn] == true{
 						noRequests_flag = false
 					}
 				}

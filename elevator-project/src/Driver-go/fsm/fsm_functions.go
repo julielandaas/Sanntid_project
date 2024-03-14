@@ -4,12 +4,6 @@ import (
 	"Sanntid/Driver-go/elevio"
 	"Sanntid/Driver-go/requests"
     "Sanntid/Driver-go/timer"
-    /*
-	"fmt"
-	"os/exec"
-    "os"
-    "time"
-    */
 )
 
 
@@ -123,19 +117,3 @@ func fsm_onDoorTimeout(timer_open_door chan timer.Timer_enum, fsm_motorDirection
     default:
     }
 }
-
-/*
-func restart_elevator(port string, id string){
-    fmt.Println("Restarts program\n")
-	cmd := exec.Command("gnome-terminal", "--", "go", "run", "main.go", "-port", port, "-id", id)
-	err := cmd.Start()
-	if err != nil {
-		fmt.Printf("Command finished with error: %v", err)
-	}
-    //panic("")
-    time.Sleep(1*time.Second)
-
-    os.Exit(0)
-
-}
-*/

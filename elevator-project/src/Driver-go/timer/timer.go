@@ -2,7 +2,6 @@ package timer
 
 import (
 	"Sanntid/Driver-go/elevio"
-	"fmt"
 	"time"
 )
 
@@ -35,8 +34,7 @@ func Timer_openDoor(timer_openDoor chan Timer_enum, timer_openDoor_timeout chan 
 				timer_pointerDoor.Reset(time.Duration(OPENDOOR_TIMEOUT_DURATION_S)*(time.Second))
 			}
 
-		case timeout_door := <- timer_pointerDoor.C:
-			fmt.Printf("Timeout door: %+v\n", timeout_door)
+		case <- timer_pointerDoor.C:
 			timer_openDoor_timeout <- true
 
 		default:
@@ -59,12 +57,10 @@ func Timer_requests(timer_requests chan Timer_enum,timer_requests_timeout chan b
 				timer_pointer_requests.Reset(time.Duration(REQUESTS_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_requests.C:
-			fmt.Printf("timerout requests %+v\n", timeout)
+		case <- timer_pointer_requests.C:
 			timer_requests_timeout <- true
 
 		default:
-			//nothing happens
 		}
 
 	}
@@ -84,12 +80,10 @@ func Timer_deleteRequests(timer_delete chan Timer_enum,timer_delete_timeout chan
 			timer_pointer_delete.Reset(time.Duration(DELETE_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_delete.C:
-			fmt.Printf("timeout delete: %+v\n", timeout)
+		case <- timer_pointer_delete.C:
 			timer_delete_timeout <- true
 
 		default:
-			//nothing happens
 		}
 
 	}
@@ -109,14 +103,11 @@ func Timer_states(timer_states chan Timer_enum,timer_states_timeout chan bool){
 			timer_pointer_states.Reset(time.Duration(STATES_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_states.C:
-			fmt.Printf("timeout states: %+v\n", timeout)
+		case <- timer_pointer_states.C:
 			timer_states_timeout <- true
 
 		default:
-			//nothing happens
 		}
-
 	}
 }
 
@@ -134,14 +125,11 @@ func Timer_reAlivePeer_CabAgreement(timer_reAlivePeer_CabAgreement chan Timer_en
 			timer_pointer_reAlivePeer_CabAgreement.Reset(time.Duration(REALIVE_PEER_CABAGREEMENT_TIMEOUT_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_reAlivePeer_CabAgreement.C:
-			fmt.Printf("timeout realivepeer cabrequests: %+v\n", timeout)
+		case <- timer_pointer_reAlivePeer_CabAgreement.C:
 			timer_reAlivePeer_CabAgreement_timeout <- true
 
 		default:
-			//nothing happens
 		}
-
 	}
 }
 
@@ -159,14 +147,11 @@ func Timer_detectImmobility(timer_detectImmobility chan Timer_enum, timer_detect
 			timer_pointer_detectImmobility.Reset(time.Duration(DETECT_IMMOBILITY_TIMEOUT_DURATION_MS)*(time.Millisecond))
 			}
 
-		case timeout := <- timer_pointer_detectImmobility.C:
-			fmt.Printf("timeout detectImmobility: %+v\n", timeout)
+		case <- timer_pointer_detectImmobility.C:
 			timer_detectImmobility_timeout <- true
 
 		default:
-			//nothing happens
 		}
-
 	}
 }
 

@@ -21,10 +21,10 @@ type Message struct {
 
 type MessageType int 
 const (
-	Normal 					 = 0
-	Normal_Ack 				 = 1
-	ReInitCab			     = 2
-	ReInitCab_Ack            = 3
+	Normal 			  = 0
+	Normal_Ack 		  = 1
+	ReInitCab		  = 2
+	ReInitCab_Ack     = 3
 )
 
 
@@ -136,6 +136,7 @@ func Main_network(id string, fsm_state_network chan elevio.Elevator, input_butto
 			fmt.Printf("  Peers:    %q\n", p.Peers)
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
+
 			peersList = p.Peers
 
 			if len(peersList) == 0 {
@@ -218,6 +219,7 @@ func Main_network(id string, fsm_state_network chan elevio.Elevator, input_butto
 						
 						}else {
 							statesMap[recievedFrom_Id] = recieved_StatesMap[recievedFrom_Id]
+
 							statesMutex.Lock()
 							stateCopy := make(map[string]requests.HRAElevState)
 							for k, v := range statesMap {
@@ -225,6 +227,7 @@ func Main_network(id string, fsm_state_network chan elevio.Elevator, input_butto
 							}
 							statesMutex.Unlock()
 							network_statesMap_requests <- stateCopy
+
 							statesMsg := Message{id, statesMap_MapToString(statesMap), Normal_Ack}
 							statesTx <- statesMsg
 						}
@@ -394,13 +397,13 @@ func Main_network(id string, fsm_state_network chan elevio.Elevator, input_butto
 				if recieved_from_id != id {
 					_, ok := unconfirmed_hallDeletes[recieved_hallrequest]
 					if ok {
-						flag := 0
+						senderId_hasAckHallreqDelete_prev := false
 						for i := 0; i < len(unconfirmed_hallDeletes[recieved_hallrequest]); i++ {
 							if recieved_from_id == unconfirmed_hallDeletes[recieved_hallrequest][i] {
-								flag = 1
+								senderId_hasAckHallreqDelete_prev = true
 							}
 						}
-						if flag != 1 {
+						if !senderId_hasAckHallreqDelete_prev {
 							unconfirmed_hallDeletes[recieved_hallrequest] = append(unconfirmed_hallDeletes[recieved_hallrequest], recieved_from_id)
 						}
 					} else {

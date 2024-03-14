@@ -11,15 +11,6 @@ import (
 	"flag"
 )
 
-// når ny heis kjem på nett, må dei få tilbake cab-calls pg hall-calls
-
-// må håndtere å fjerne når en pc suger... typ 80% pakketap
-// må også klare å finne ut når en sjølv suger.. og fjerne seg sjølv fra nettet
-
-// chan read/write
-// <-chan read only
-// chan<- write only
-
 
 func main() {
 
@@ -30,9 +21,7 @@ func main() {
 	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
 
-	id = elevio.Init("localhost:"+port, id)
-	
-
+	elevio.Init("localhost:"+port)
 	
 	input_floors_fsm := make(chan int)
 	input_obstr_fsm := make(chan bool)

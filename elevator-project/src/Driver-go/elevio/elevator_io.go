@@ -1,12 +1,10 @@
 package elevio
 
 import (
-	"Sanntid/Network-go/network/localip"
 	"time"
 	"sync"
 	"net"
 	"fmt"
-	"os"
 )
 
 
@@ -18,10 +16,9 @@ var mtx            sync.Mutex
 var conn           net.Conn
 
 
-func Init(addr string, id string) string {
+func Init(addr string) {
 	if initialized {
 		fmt.Println("Driver already initialized!")
-		return id
 	} else {
 		mtx = sync.Mutex{}
 		var err error
@@ -30,16 +27,6 @@ func Init(addr string, id string) string {
 			panic(err.Error())
 		}
 		initialized = true
-
-		if id == "" {
-			localIP, err := localip.LocalIP()
-			if err != nil {
-				fmt.Println(err)
-				localIP = "DISCONNECTED"
-			}
-			id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
-		}
-		return id
 	}
 }
 

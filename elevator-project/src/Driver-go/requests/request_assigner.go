@@ -24,9 +24,9 @@ func Request_assigner(id string, network_hallrequest_requests chan elevio.Button
 		case new_peersList := <-network_peersList_requests:
 			if len(new_peersList) > len(peersList) {
 				for floor := 0; floor < elevio.N_FLOORS; floor++ {
-					for button := 0; button < elevio.N_BUTTONS-1; button++ {
-						if input.HallRequests[floor][button] {
-							pseudo_buttonevent := elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(button), Value: true}
+					for btn := 0; btn < elevio.N_BUTTONS-1; btn++ {
+						if input.HallRequests[floor][btn] {
+							pseudo_buttonevent := elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(btn), Value: true}
 							requests_resendHallrequests_network <- pseudo_buttonevent
 						}
 					}

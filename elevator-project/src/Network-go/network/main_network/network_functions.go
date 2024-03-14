@@ -5,14 +5,13 @@ import (
 	"Sanntid/Driver-go/requests"
 	"encoding/json"
 	"fmt"
-
 )
 
 
 func statesMap_MapToString(statesMap map[string]requests.HRAElevState) string {
 	jsonBytes, err := json.Marshal(statesMap)
 	if err != nil {
-		fmt.Println("error in states_MapToString: json.Marshal error: ", err)
+		fmt.Println("error in statesMap_MapToString: json.Marshal error: ", err)
 		return ""
 	}
 
@@ -24,7 +23,7 @@ func statesMap_StringToMap(message string) map[string]requests.HRAElevState {
 
 	err := json.Unmarshal([]byte(message), &stateMap)
 	if err != nil {
-		fmt.Println("json.Unmarshal error: ", err)
+		fmt.Println("error in statesMap_StringToMap: json.Unmarshal error: ", err)
 		return nil
 	}
 
@@ -34,7 +33,7 @@ func statesMap_StringToMap(message string) map[string]requests.HRAElevState {
 func buttonEvent_StructToString(buttonEvent elevio.ButtonEvent) string {
 	jsonBytes, err := json.Marshal(buttonEvent)
 	if err != nil {
-		fmt.Println("error in states_MapToString: json.Marshal error: ", err)
+		fmt.Println("error in buttonEvent_StructToString: json.Marshal error: ", err)
 		return ""
 	}
 
@@ -46,7 +45,7 @@ func buttonEvent_StringToStruct(message string) *elevio.ButtonEvent {
 
 	err := json.Unmarshal([]byte(message), &buttonEvent)
 	if err != nil {
-		fmt.Println("json.Unmarshal error: ", err)
+		fmt.Println("error in buttonEvent_StringToStruct: json.Unmarshal error: ", err)
 		return nil
 	}
 
